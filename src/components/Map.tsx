@@ -5,6 +5,8 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useEffect, useState, useRef } from 'react';
 import Image from 'next/image';
+import ChatWindow from '@/components/ChatWindow';
+import { AnimatePresence } from 'framer-motion';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function parseMapPoints(points: any, scale: number): any {
@@ -129,6 +131,7 @@ export default function EarthMap({ activeTab }: { activeTab?: string }) {
     const [pathPlayer, setPathPlayer] = useState<{ uuid: string, name: string } | null>(null);
     const [showPlayers, setShowPlayers] = useState<boolean>(true);
     const [showTowns, setShowTowns] = useState<boolean>(false);
+    const [isChatOpen, setIsChatOpen] = useState<boolean>(false);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [townMarkers, setTownMarkers] = useState<any[] | null>(null);
 
@@ -485,25 +488,19 @@ export default function EarthMap({ activeTab }: { activeTab?: string }) {
                         <div className="w-px h-4 bg-white/20 shrink-0"></div>
                     </div>
                     <button
-                        onClick={() => {
-                            setPathPlayer(null);
-                            setPathData([]);
-                            const onlinePlayers = players.filter(p => p.is_online && p.is_visible);
-                            if (onlinePlayers.length > 0) {
-                                const randomPlayer = onlinePlayers[Math.floor(Math.random() * onlinePlayers.length)];
-                                const scale = 1 / Math.pow(2, 3);
-                                window.dispatchEvent(new CustomEvent('fly-to-map', {
-                                    detail: { lat: -randomPlayer.z * scale, lng: randomPlayer.x * scale }
-                                }));
-                            }
-                        }}
-                        className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 transition-colors flex items-center justify-center group shrink-0"
-                        title="Go to Random Player"
+                        onClick={() => setIsChatOpen(!isChatOpen)}
+                        className={`w-8 h-8 rounded-full transition-colors flex items-center justify-center group shrink-0 ${isChatOpen ? 'bg-blue-500/80 hover:bg-blue-400' : 'bg-white/10 hover:bg-white/20'}`}
+                        title="Vertex AI Assistant"
                     >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white group-hover:rotate-12 transition-transform"><rect width="18" height="18" x="3" y="3" rx="2" ry="2" /><path d="M8 8h.01" /><path d="M16 8h.01" /><path d="M8 16h.01" /><path d="M16 16h.01" /><path d="M12 12h.01" /></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white group-hover:scale-110 transition-transform"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
                     </button>
                 </div>
-            )}
-        </div>
+            )
+            }
+
+            <AnimatePresence>
+                {isChatOpen && <ChatWindow onClose={() => setIsChatOpen(false)} />}
+            </AnimatePresence>
+        </div >
     );
 }
