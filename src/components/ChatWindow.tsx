@@ -85,14 +85,14 @@ export default function ChatWindow({ onClose }: { onClose: () => void }) {
             className="absolute bottom-24 right-6 w-96 h-[500px] liquid-glass flex flex-col rounded-2xl border border-white/20 shadow-2xl overflow-hidden z-[1000] pointer-events-auto"
         >
             {/* Header */}
-            <div className="flex justify-between items-center p-4 border-b border-white/10 bg-black/20">
+            <div className="flex justify-between items-center p-4 border-b border-white/10 bg-black/40">
                 <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-emerald-400 flex items-center justify-center p-0.5">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-earthmc-green to-emerald-600 flex items-center justify-center p-0.5">
                         <div className="w-full h-full bg-black/50 rounded-full flex items-center justify-center">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" /></svg>
                         </div>
                     </div>
-                    <span className="font-bold text-white tracking-wide">Vertex AI Assistant</span>
+                    <span className="font-bold text-white tracking-wide">EarthMC Assistant</span>
                 </div>
                 <button
                     onClick={onClose}
@@ -117,7 +117,7 @@ export default function ChatWindow({ onClose }: { onClose: () => void }) {
                     <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                         <div
                             className={`max-w-[85%] rounded-2xl px-4 py-2 ${msg.role === 'user'
-                                ? 'bg-blue-500/80 text-white rounded-br-sm'
+                                ? 'bg-earthmc-green/80 text-white rounded-br-sm'
                                 : 'bg-white/10 text-gray-100 rounded-bl-sm border border-white/5'
                                 } text-sm leading-relaxed`}
                         >
@@ -155,7 +155,7 @@ export default function ChatWindow({ onClose }: { onClose: () => void }) {
                     <button
                         type="submit"
                         disabled={isThinking || !input.trim()}
-                        className="w-10 h-10 rounded-full bg-blue-500/80 hover:bg-blue-400 text-white flex items-center justify-center shrink-0 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_15px_rgba(59,130,246,0.3)]"
+                        className="w-10 h-10 rounded-full bg-earthmc-green/80 hover:bg-earthmc-green text-white flex items-center justify-center shrink-0 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_15px_rgba(74,222,128,0.3)]"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-0.5"><line x1="22" x2="11" y1="2" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" /></svg>
                     </button>

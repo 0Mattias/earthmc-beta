@@ -71,12 +71,16 @@ export async function POST(req: NextRequest) {
         const stream = new ReadableStream({
             async start(controller) {
                 let toolCall = null;
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const modelParts: any[] = [];
 
                 try {
                     for await (const chunk of responseStream) {
+                        if (chunk.candidates?.[0]?.content?.parts) {
+                            modelParts.push(...chunk.candidates[0].content.parts);
+                        }
                         if (chunk.functionCalls && chunk.functionCalls.length > 0) {
                             toolCall = chunk.functionCalls[0];
-                            break; // Stop streaming text, we need to handle the tool execution
                         }
                         if (chunk.text && chunk.text.trim()) {
                             controller.enqueue(new TextEncoder().encode(chunk.text));
@@ -84,6 +88,7 @@ export async function POST(req: NextRequest) {
                     }
 
                     if (toolCall && toolCall.name === 'execute_sql') {
+
                         // Execute the SQL
                         // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         const args = toolCall.args as any;
@@ -96,19 +101,16 @@ export async function POST(req: NextRequest) {
                             return;
                         }
 
-                        // We can optionally send exactly what query was run back to the user
-                        // controller.enqueue(new TextEncoder().encode(`\n\n*Executing Query: ${query}*`));
-
                         try {
                             const dbRes = await pool.query(query);
                             const dbResultStr = JSON.stringify(dbRes.rows, null, 2);
 
-                            // Send another request to Gemini with the tool output
+                            // Send another request to Gemini with the exact model parts
                             const followupContents = [
                                 ...formattedMessages,
                                 {
                                     role: 'model',
-                                    parts: [{ functionCall: toolCall }]
+                                    parts: modelParts
                                 },
                                 {
                                     role: 'user',
@@ -153,6 +155,7 @@ export async function POST(req: NextRequest) {
             },
         });
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
         console.error("Chat API Error:", error);
         return NextResponse.json({
