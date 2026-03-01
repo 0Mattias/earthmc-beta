@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
         }));
 
         const responseStream = await ai.models.generateContentStream({
-            model: 'gemini-3.0-flash',
+            model: 'gemini-2.5-flash',
             contents: formattedMessages,
             config: {
                 tools: [{ functionDeclarations: [executeSqlTool] }],
@@ -122,7 +122,7 @@ export async function POST(req: NextRequest) {
                             ];
 
                             const finalStream = await ai.models.generateContentStream({
-                                model: 'gemini-3.0-flash',
+                                model: 'gemini-2.5-flash',
                                 contents: followupContents,
                                 config: { temperature: 0.2 }
                             });
