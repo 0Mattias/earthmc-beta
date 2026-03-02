@@ -466,16 +466,8 @@ export default function EarthMap({ activeTab }: { activeTab?: string }) {
             )}
 
             {(!activeTab || activeTab === 'app') && (
-                <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-[1000] liquid-glass text-white pl-5 pr-1.5 py-1.5 rounded-full shadow-xl pointer-events-auto flex items-center space-x-3">
+                <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-[1000] liquid-glass text-white pl-5 pr-1.5 py-1.5 rounded-full shadow-xl pointer-events-auto flex items-center space-x-3 bg-black/20 border border-white/10">
                     <div className="flex items-center space-x-3 text-sm font-medium cursor-default">
-                        <span
-                            className={`font-bold whitespace-nowrap cursor-pointer hover:opacity-80 transition-opacity ${showPlayers ? 'text-earthmc-green' : 'text-gray-500'}`}
-                            onClick={() => setShowPlayers(!showPlayers)}
-                            title="Toggle Players"
-                        >
-                            {totalOnline} <span className="font-normal text-gray-300">Online</span>
-                        </span>
-                        <div className="w-px h-4 bg-white/20 shrink-0"></div>
                         <span
                             className={`font-mono whitespace-nowrap min-w-[90px] text-center cursor-pointer hover:opacity-80 transition-opacity ${showTowns ? 'text-earthmc-green font-bold' : 'text-gray-400'}`}
                             ref={coordsRef}
@@ -483,6 +475,14 @@ export default function EarthMap({ activeTab }: { activeTab?: string }) {
                             title="Toggle Towns Overlay"
                         >
                             0, 0
+                        </span>
+                        <div className="w-px h-4 bg-white/20 shrink-0"></div>
+                        <span
+                            className={`font-bold whitespace-nowrap cursor-pointer hover:opacity-80 transition-opacity ${showPlayers ? 'text-earthmc-green' : 'text-gray-500'}`}
+                            onClick={() => setShowPlayers(!showPlayers)}
+                            title="Toggle Players"
+                        >
+                            {totalOnline} <span className="font-normal text-gray-300">Online</span>
                         </span>
                         <div className="w-px h-4 bg-white/20 shrink-0"></div>
                     </div>

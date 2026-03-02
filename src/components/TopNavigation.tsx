@@ -18,7 +18,7 @@ export default function TopNavigation({ activeTab, setActiveTab }: { activeTab: 
     ];
 
     return (
-        <div className="liquid-glass rounded-full px-6 py-3 flex items-center justify-between shadow-2xl space-x-8">
+        <div className="liquid-glass rounded-full px-6 py-3 flex items-center justify-between shadow-2xl space-x-8 bg-black/20 border border-white/10">
             {/* Logo */}
             <div
                 className="font-extrabold text-2xl tracking-tighter text-white mr-8 cursor-pointer select-none hover:opacity-80 transition-opacity"

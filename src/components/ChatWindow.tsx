@@ -7,6 +7,15 @@ export default function ChatWindow({ isOpen, onClose }: { isOpen: boolean, onClo
     const [isThinking, setIsThinking] = useState(false);
     const [loadingText, setLoadingText] = useState('Analyzing EarthMC data...');
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const abortControllerRef = useRef<AbortController | null>(null);
+
+    const handleStop = () => {
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+            abortControllerRef.current = null;
+            setIsThinking(false);
+        }
+    };
 
     useEffect(() => {
         const loadingPhrases = [
@@ -46,6 +55,8 @@ export default function ChatWindow({ isOpen, onClose }: { isOpen: boolean, onClo
         setMessages(prev => [...prev, { role: 'user', content: userMsg }]);
         setIsThinking(true);
 
+        abortControllerRef.current = new AbortController();
+
         // Add a temporary empty assistant message to stream into
         setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
 
@@ -53,6 +64,7 @@ export default function ChatWindow({ isOpen, onClose }: { isOpen: boolean, onClo
             const res = await fetch('/api/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                signal: abortControllerRef.current.signal,
                 body: JSON.stringify({
                     messages: [...messages, { role: 'user', content: userMsg }].map(m => ({
                         role: m.role,
@@ -83,7 +95,8 @@ export default function ChatWindow({ isOpen, onClose }: { isOpen: boolean, onClo
                     });
                 }
             }
-        } catch (error) {
+        } catch (error: unknown) {
+            if (error instanceof Error && error.name === 'AbortError') return;
             console.error("Chat error:", error);
             setMessages(prev => {
                 const newMessages = [...prev];
@@ -301,7 +314,7 @@ export default function ChatWindow({ isOpen, onClose }: { isOpen: boolean, onClo
                     initial={{ opacity: 0, y: "-40%", x: "-50%" }}
                     animate={{ opacity: 1, y: "-50%", x: "-50%" }}
                     transition={{ duration: 0.3, ease: "easeOut" }}
-                    className="fixed top-1/2 left-1/2 w-[400px] md:w-[650px] max-w-[calc(100vw-2rem)] h-[550px] max-h-[calc(100vh-8rem)] liquid-glass flex flex-col rounded-2xl border border-white/10 shadow-2xl z-[1000] pointer-events-auto"
+                    className="fixed top-1/2 left-1/2 w-[400px] md:w-[750px] max-w-[calc(100vw-2rem)] h-[550px] max-h-[calc(100vh-8rem)] liquid-glass flex flex-col rounded-2xl border border-white/10 shadow-2xl z-[1000] pointer-events-auto"
                 >
                     {/* Header */}
                     <div className="flex justify-between items-center p-3 px-4 border-b border-white/5 bg-black/20 rounded-t-2xl">
@@ -388,13 +401,25 @@ export default function ChatWindow({ isOpen, onClose }: { isOpen: boolean, onClo
                                 placeholder="Message Agent..."
                                 className="flex-1 bg-white/5 border border-white/10 rounded-full px-4 py-2 text-sm text-white focus:outline-none focus:border-white/20 focus:bg-white/10 transition-all placeholder:text-white/30 disabled:opacity-50"
                             />
-                            <button
-                                type="submit"
-                                disabled={isThinking || !input.trim()}
-                                className="w-10 h-10 rounded-full bg-earthmc-green/10 hover:bg-earthmc-green/20 border border-earthmc-green/30 text-emerald-400 flex items-center justify-center shrink-0 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="ml-0.5"><line x1="22" x2="11" y1="2" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" /></svg>
-                            </button>
+                            {isThinking ? (
+                                <button
+                                    type="button"
+                                    onClick={handleStop}
+                                    className="w-10 h-10 rounded-full bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 flex items-center justify-center shrink-0 transition-all"
+                                    title="Stop generating"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="6" y="6" width="12" height="12" rx="2" ry="2"></rect></svg>
+                                </button>
+                            ) : (
+                                <button
+                                    type="submit"
+                                    disabled={!input.trim()}
+                                    className="w-10 h-10 rounded-full bg-earthmc-green/10 hover:bg-earthmc-green/20 border border-earthmc-green/30 text-emerald-400 flex items-center justify-center shrink-0 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                                    title="Send message"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="ml-0.5"><line x1="22" x2="11" y1="2" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" /></svg>
+                                </button>
+                            )}
                         </form>
                     </div>
                 </motion.div>

@@ -229,7 +229,7 @@ export default function DirectoryDropdown({ activeTab, initialSearch = '' }: { a
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -15 }}
             transition={{ duration: 0.3, ease: "easeOut" }}
-            className="liquid-glass w-full h-[75vh] max-h-[1000px] rounded-3xl p-4 sm:p-5 pb-2 sm:pb-3 flex flex-col shadow-2xl border border-white/20"
+            className="liquid-glass w-full h-[75vh] max-h-[1000px] rounded-3xl p-4 sm:p-5 pb-2 sm:pb-3 flex flex-col shadow-2xl bg-black/20 border border-white/10"
         >
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-white/10 pb-3 mb-3">
                 <h2 className="text-2xl font-bold capitalize text-white flex items-center">
