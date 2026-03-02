@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
                 try {
                     // Initialize the conversation data
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    const turnMessages: any[] = [{ role: 'user', parts: [{ text: currentMessageText }] }];
+                    let nextMessage: any = currentMessageText;
                     const maxIter = 10;
                     let iter = 0;
                     let generatedSomeText = false;
@@ -92,10 +92,7 @@ export async function POST(req: NextRequest) {
                         let responseStream;
                         try {
                             // Send the next message/tool response
-                            responseStream = await chat.sendMessageStream({ message: [...turnMessages] });
-
-                            // Clear array for the next iteration (it will either be empty or contain the next tool response)
-                            turnMessages.length = 0;
+                            responseStream = await chat.sendMessageStream({ message: nextMessage });
                             // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         } catch (e: any) {
                             controller.enqueue(new TextEncoder().encode(`\n\n[Chat API Error: ${e.message}]`));
@@ -151,15 +148,12 @@ export async function POST(req: NextRequest) {
                             }
 
                             // Just feed the tool response directly back to the chat instance; it retains history.
-                            turnMessages.push({
-                                role: 'user',
-                                parts: [{
-                                    functionResponse: {
-                                        name: 'execute_sql',
-                                        response: { result: dbResultStr }
-                                    }
-                                }]
-                            });
+                            nextMessage = [{
+                                functionResponse: {
+                                    name: 'execute_sql',
+                                    response: { result: dbResultStr }
+                                }
+                            }];
                         }
                     }
 
