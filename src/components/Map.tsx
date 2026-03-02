@@ -6,7 +6,6 @@ import 'leaflet/dist/leaflet.css';
 import { useEffect, useState, useRef } from 'react';
 import Image from 'next/image';
 import ChatWindow from '@/components/ChatWindow';
-import { AnimatePresence } from 'framer-motion';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function parseMapPoints(points: any, scale: number): any {
@@ -498,9 +497,7 @@ export default function EarthMap({ activeTab }: { activeTab?: string }) {
             )
             }
 
-            <AnimatePresence>
-                {isChatOpen && <ChatWindow onClose={() => setIsChatOpen(false)} />}
-            </AnimatePresence>
+            <ChatWindow isOpen={isChatOpen && (!activeTab || activeTab === 'app')} onClose={() => setIsChatOpen(false)} />
         </div >
     );
 }
