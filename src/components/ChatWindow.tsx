@@ -221,6 +221,19 @@ export default function ChatWindow({ onClose }: { onClose: () => void }) {
                 }
 
                 const lines = part.split('\n');
+
+                // Shift initial empty newlines so we don't render a big forehead
+                while (lines.length > 0 && lines[0].trim() === '') {
+                    lines.shift();
+                }
+
+                // Pop trailing empty newlines so we don't render dead space at bottom
+                while (lines.length > 0 && lines[lines.length - 1].trim() === '') {
+                    lines.pop();
+                }
+
+                if (lines.length === 0) return null;
+
                 return (
                     <span key={`text-${groupIdx}`}>
                         {lines.map((line, lineIdx) => (
@@ -239,10 +252,10 @@ export default function ChatWindow({ onClose }: { onClose: () => void }) {
 
     return (
         <motion.div
-            initial={{ opacity: 0, y: 20, x: "-50%", scale: 0.95 }}
-            animate={{ opacity: 1, y: "-50%", x: "-50%", scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95, y: "-40%", x: "-50%" }}
-            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+            initial={{ opacity: 0, y: "-40%", x: "-50%" }}
+            animate={{ opacity: 1, y: "-50%", x: "-50%" }}
+            exit={{ opacity: 0, y: "-40%", x: "-50%" }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
             className="fixed top-1/2 left-1/2 w-[400px] h-[550px] liquid-glass flex flex-col rounded-2xl border border-white/10 shadow-2xl z-[1000] pointer-events-auto"
         >
             {/* Header */}
