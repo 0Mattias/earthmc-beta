@@ -335,7 +335,7 @@ export default function ChatWindow({ isOpen, onClose }: { isOpen: boolean, onClo
                                 </div>
                                 <span className="font-medium text-white tracking-wide text-sm">Agent</span>
                             </div>
-                            <div className="flex items-center bg-black/40 rounded-lg p-0.5 border border-white/10 hidden sm:flex">
+                            <div className="flex items-center bg-black/40 rounded-lg p-0.5 border border-white/10">
                                 <button
                                     onClick={() => setModel('fast')}
                                     className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${model === 'fast' ? 'bg-white/10 text-white shadow-sm' : 'text-white/40 hover:text-white/70'}`}
