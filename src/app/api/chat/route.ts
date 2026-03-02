@@ -165,7 +165,11 @@ export async function POST(req: NextRequest) {
                                 parts: [{
                                     functionResponse: {
                                         name: 'execute_sql',
-                                        response: { result: dbResultStr }
+                                        // The SDK expects an object containing the data, not just a string key
+                                        response: {
+                                            name: 'execute_sql',
+                                            content: dbResultStr
+                                        }
                                     }
                                 }]
                             });

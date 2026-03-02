@@ -8,16 +8,16 @@ export default function ChatWindow({ onClose }: { onClose: () => void }) {
     const [loadingText, setLoadingText] = useState('Analyzing EarthMC data...');
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
-    const loadingPhrases = [
-        "Analyzing EarthMC data...",
-        "Querying the database...",
-        "Looking up town records...",
-        "Fetching player history...",
-        "Compiling server statistics...",
-        "Parsing nation lists..."
-    ];
-
     useEffect(() => {
+        const loadingPhrases = [
+            "Analyzing EarthMC data...",
+            "Querying the database...",
+            "Looking up town records...",
+            "Fetching player history...",
+            "Compiling server statistics...",
+            "Parsing nation lists..."
+        ];
+
         let interval: NodeJS.Timeout;
         if (isThinking) {
             let phraseIndex = 0;
@@ -114,7 +114,7 @@ export default function ChatWindow({ onClose }: { onClose: () => void }) {
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" /></svg>
                         </div>
                     </div>
-                    <span className="font-bold text-white tracking-wide">EarthMC Assistant</span>
+                    <span className="font-bold text-white tracking-wide">EarthMC Agent</span>
                 </div>
                 <button
                     onClick={onClose}
@@ -179,7 +179,7 @@ export default function ChatWindow({ onClose }: { onClose: () => void }) {
 
             {/* Input Area */}
             <div className="p-3 bg-black/20 border-t border-white/10">
-                <form onSubmit={handleSubmit} className="flex gap-2">
+                <form onSubmit={handleSubmit} className="flex gap-2 items-center">
                     <input
                         type="text"
                         value={input}
