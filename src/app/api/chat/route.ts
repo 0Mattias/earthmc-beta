@@ -187,7 +187,10 @@ export async function POST(req: NextRequest) {
 
                             if (chunk.functionCalls && chunk.functionCalls.length > 0) {
                                 toolCall = chunk.functionCalls[0];
+                            } else if (chunk.candidates?.[0]?.content?.parts?.[0]?.functionCall) {
+                                toolCall = chunk.candidates[0].content.parts[0].functionCall;
                             }
+
                             if (chunk.text && chunk.text.trim()) {
                                 generatedSomeText = true;
                                 controller.enqueue(new TextEncoder().encode(chunk.text));
