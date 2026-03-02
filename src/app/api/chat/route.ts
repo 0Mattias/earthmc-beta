@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { GoogleGenAI, Type, Schema } from '@google/genai';
+import { GoogleGenAI, Type, Schema, HarmCategory, HarmBlockThreshold } from '@google/genai';
 import pool from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
@@ -66,7 +66,13 @@ export async function POST(req: NextRequest) {
             history: history,
             config: {
                 tools: [{ functionDeclarations: [executeSqlTool] }],
-                temperature: 0.2
+                temperature: 0.2,
+                safetySettings: [
+                    { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
+                    { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+                    { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
+                    { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE }
+                ]
             }
         });
 
@@ -77,12 +83,28 @@ export async function POST(req: NextRequest) {
             async start(controller) {
                 let toolCall = null;
                 try {
+                    let hasText = false;
+                    let finishReason = '';
+
                     for await (const chunk of responseStream) {
+                        if (chunk.candidates?.[0]?.finishReason) {
+                            finishReason = chunk.candidates[0].finishReason;
+                        }
+
                         if (chunk.functionCalls && chunk.functionCalls.length > 0) {
                             toolCall = chunk.functionCalls[0];
                         }
                         if (chunk.text && chunk.text.trim()) {
+                            hasText = true;
                             controller.enqueue(new TextEncoder().encode(chunk.text));
+                        }
+                    }
+
+                    if (!toolCall && !hasText) {
+                        if (finishReason === 'SAFETY') {
+                            controller.enqueue(new TextEncoder().encode("\n\n*My safety filters prevented me from answering this query.*"));
+                        } else {
+                            controller.enqueue(new TextEncoder().encode("\n\n*[The model returned an empty response. Wait a moment and try again.]*"));
                         }
                     }
 
@@ -113,9 +135,26 @@ export async function POST(req: NextRequest) {
                                 }]
                             });
 
+                            let hasFinalText = false;
+                            let finalFinishReason = '';
+
                             for await (const finalChunk of finalStream) {
+                                if (finalChunk.candidates?.[0]?.finishReason) {
+                                    finalFinishReason = finalChunk.candidates[0].finishReason;
+                                }
+
                                 if (finalChunk.text) {
+                                    hasFinalText = true;
                                     controller.enqueue(new TextEncoder().encode(finalChunk.text));
+                                }
+                            }
+
+                            if (!hasFinalText) {
+                                if (finalFinishReason === 'SAFETY') {
+                                    controller.enqueue(new TextEncoder().encode("\n\n*My safety filters prevented me from displaying these records.*"));
+                                } else {
+                                    // Sometimes large queries make the model output empty strings.
+                                    controller.enqueue(new TextEncoder().encode(`\n\n*[The query returned data, but I could not formulate a response. Usually this happens if the result is too large. Length: ${dbResultStr.length} chars]*`));
                                 }
                             }
                             // eslint-disable-next-line @typescript-eslint/no-explicit-any
