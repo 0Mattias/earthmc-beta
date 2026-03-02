@@ -98,7 +98,7 @@ export default function ChatWindow({ onClose }: { onClose: () => void }) {
         }
     };
 
-    const renderMessageContent = (content: string, role: 'user' | 'assistant') => {
+    const renderMessageContent = (content: string, role: 'user' | 'assistant', isLastMessage: boolean) => {
         const parts = content.split(/(\[(?:player|town|nation|action|thought|query)[^\]]*\])/g).filter(Boolean);
 
         type Group = { type: 'group'; items: string[] };
@@ -115,8 +115,8 @@ export default function ChatWindow({ onClose }: { onClose: () => void }) {
                     groupedParts.push({ type: 'group', items: currentGroup });
                 }
                 currentGroup.push(part);
-            } else if (part.trim() === '' && currentGroup) {
-                // Ignore whitespace between thoughts/queries so we don't break the group
+            } else if (part.trim() === '') {
+                // Ignore purely whitespace parts so we don't break groups or create empty "forehead" bubble padding
                 continue;
             } else {
                 currentGroup = null;
@@ -171,7 +171,7 @@ export default function ChatWindow({ onClose }: { onClose: () => void }) {
                 if (!part) return null;
 
                 // Hide the actual response text if the agent is still thinking (and we are the assistant)
-                if (role === 'assistant' && isThinking) return null;
+                if (role === 'assistant' && isThinking && isLastMessage) return null;
 
                 if (part.startsWith('[player:')) {
                     const name = part.slice(8, -1);
@@ -282,7 +282,7 @@ export default function ChatWindow({ onClose }: { onClose: () => void }) {
                                 }`}
                         >
                             {/* Tag parsed text rendering. */}
-                            {renderMessageContent(msg.content, msg.role)}
+                            {renderMessageContent(msg.content, msg.role, idx === messages.length - 1)}
                             {msg.role === 'assistant' && msg.content === '' && isThinking && (
                                 <div className="flex items-center gap-3 h-6 text-earthmc-green font-medium">
                                     <motion.div
