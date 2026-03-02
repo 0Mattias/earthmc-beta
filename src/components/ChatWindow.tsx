@@ -354,7 +354,11 @@ export default function ChatWindow({ isOpen, onClose }: { isOpen: boolean, onClo
                         </div>
                         <div className="flex items-center gap-1">
                             <button
-                                onClick={() => setMessages([])}
+                                onClick={() => {
+                                    handleStop();
+                                    setMessages([]);
+                                    setInput('');
+                                }}
                                 title="New Chat"
                                 className="p-1.5 rounded-full hover:bg-white/10 transition-colors text-white/50 hover:text-white"
                             >

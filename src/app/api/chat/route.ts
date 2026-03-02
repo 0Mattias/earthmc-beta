@@ -120,6 +120,10 @@ export async function POST(req: NextRequest) {
             parts: [{ text: msg.content || msg.parts?.[0]?.text || '' }]
         }));
 
+        if (formattedMessages.length === 0) {
+            return new Response("No messages provided", { status: 400 });
+        }
+
         const history = formattedMessages.slice(0, -1);
         const currentMessageText = formattedMessages[formattedMessages.length - 1].parts[0].text;
 
