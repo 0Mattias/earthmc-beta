@@ -99,7 +99,7 @@ export default function ChatWindow({ onClose }: { onClose: () => void }) {
     };
 
     const renderMessageContent = (content: string, role: 'user' | 'assistant', isLastMessage: boolean) => {
-        const parts = content.split(/(\[(?:player|town|nation|action|thought|query)[^\]]*\])/g).filter(Boolean);
+        const parts = content.split(/(\[(?:thought|query)[^\]]*\])/g).filter(Boolean);
 
         type Group = { type: 'group'; items: string[] };
         type TextItem = { type: 'text'; content: string };
@@ -124,7 +124,10 @@ export default function ChatWindow({ onClose }: { onClose: () => void }) {
             }
         }
 
-        return groupedParts.map((group, groupIdx) => {
+        let globalActionPinCount = 0;
+        const allCollectedActions: { type: 'map' | 'path', content: string, args: string[] }[] = [];
+
+        const renderedGroups = groupedParts.map((group, groupIdx) => {
             if (group.type === 'group' && group.items.length > 0) {
                 return (
                     <details key={`grp-${groupIdx}`} className="group my-2 bg-black/20 border border-white/[0.03] rounded-xl overflow-hidden w-full text-xs shadow-sm">
@@ -182,9 +185,6 @@ export default function ChatWindow({ onClose }: { onClose: () => void }) {
                 // Hide the actual response text if the agent is still thinking (and we are the assistant)
                 if (role === 'assistant' && isThinking && isLastMessage) return null;
 
-                const collectedActions: { type: 'map' | 'path', content: string, args: string[] }[] = [];
-                let actionPinCount = 0;
-
                 const renderedContent: React.ReactNode[] = [];
 
                 const lines = part.split('\n');
@@ -200,8 +200,7 @@ export default function ChatWindow({ onClose }: { onClose: () => void }) {
                 }
 
                 if (lines.length === 0) {
-                    // If only actions were present and trimmed, we still need to render the action buttons
-                    if (collectedActions.length === 0) return null;
+                    return null;
                 }
 
                 lines.forEach((line, lineIdx) => {
@@ -219,24 +218,24 @@ export default function ChatWindow({ onClose }: { onClose: () => void }) {
                         } else if (subPart.startsWith('[action:map:')) {
                             const args = subPart.slice(12, -1).split(':');
                             if (args.length === 2) {
-                                actionPinCount++;
-                                collectedActions.push({ type: 'map', content: subPart, args });
+                                globalActionPinCount++;
+                                allCollectedActions.push({ type: 'map', content: subPart, args });
                                 renderedContent.push(
                                     <span key={`text-${groupIdx}-${lineIdx}-${subPartIdx}`} className="inline-flex items-center gap-0.5 text-blue-400 font-semibold text-xs px-1 py-0.5 rounded-md bg-blue-500/10 border border-blue-500/20 mx-0.5">
                                         <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"></polygon><line x1="9" y1="3" x2="9" y2="18"></line><line x1="15" y1="6" x2="15" y2="21"></line></svg>
-                                        {actionPinCount}
+                                        {globalActionPinCount}
                                     </span>
                                 );
                             }
                         } else if (subPart.startsWith('[action:path:')) {
                             const args = subPart.slice(13, -1).split(':');
                             if (args.length >= 2) {
-                                actionPinCount++;
-                                collectedActions.push({ type: 'path', content: subPart, args });
+                                globalActionPinCount++;
+                                allCollectedActions.push({ type: 'path', content: subPart, args });
                                 renderedContent.push(
                                     <span key={`text-${groupIdx}-${lineIdx}-${subPartIdx}`} className="inline-flex items-center gap-0.5 text-red-400 font-semibold text-xs px-1 py-0.5 rounded-md bg-red-500/10 border border-red-500/20 mx-0.5">
                                         <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z" /><circle cx="12" cy="10" r="3" /></svg>
-                                        {actionPinCount}
+                                        {globalActionPinCount}
                                     </span>
                                 );
                             }
@@ -252,37 +251,43 @@ export default function ChatWindow({ onClose }: { onClose: () => void }) {
                 return (
                     <div key={`text-group-${groupIdx}`}>
                         {renderedContent}
-                        {collectedActions.length > 0 && (
-                            <div className="flex flex-wrap gap-2 mt-3 pt-2 border-t border-white/5">
-                                {collectedActions.map((action, actionIdx) => {
-                                    if (action.type === 'map') {
-                                        const [x, z] = action.args;
-                                        return (
-                                            <button key={`action-map-${groupIdx}-${actionIdx}`} onClick={() => window.dispatchEvent(new CustomEvent('fly-to-map', { detail: { lat: -Number(z) / 8, lng: Number(x) / 8 } }))} className="inline-flex items-center gap-1.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 border border-blue-500/30 rounded-full px-2.5 py-1 text-xs font-medium transition-colors whitespace-nowrap">
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"></polygon><line x1="9" y1="3" x2="9" y2="18"></line><line x1="15" y1="6" x2="15" y2="21"></line></svg>
-                                                Show on Map ({actionIdx + 1})
-                                            </button>
-                                        );
-                                    }
-                                    if (action.type === 'path') {
-                                        const uuid = action.args[0];
-                                        const name = action.args.slice(1).join(':');
-                                        return (
-                                            <button key={`action-path-${groupIdx}-${actionIdx}`} onClick={() => window.dispatchEvent(new CustomEvent('show-player-path', { detail: { player_uuid: uuid, player_name: name } }))} className="inline-flex items-center gap-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-300 border border-red-500/30 rounded-full px-2.5 py-1 text-xs font-medium transition-colors whitespace-nowrap">
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z" /><circle cx="12" cy="10" r="3" /></svg>
-                                                Draw Path ({actionIdx + 1})
-                                            </button>
-                                        );
-                                    }
-                                    return null;
-                                })}
-                            </div>
-                        )}
                     </div>
                 );
             }
             return null;
         });
+
+        return (
+            <>
+                {renderedGroups}
+                {allCollectedActions.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-3 pt-2 border-t border-white/5">
+                        {allCollectedActions.map((action, actionIdx) => {
+                            if (action.type === 'map') {
+                                const [x, z] = action.args;
+                                return (
+                                    <button key={`action-map-${actionIdx}`} onClick={() => window.dispatchEvent(new CustomEvent('fly-to-map', { detail: { lat: -Number(z) / 8, lng: Number(x) / 8 } }))} className="inline-flex items-center gap-1.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 border border-blue-500/30 rounded-full px-2.5 py-1 text-xs font-medium transition-colors whitespace-nowrap">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"></polygon><line x1="9" y1="3" x2="9" y2="18"></line><line x1="15" y1="6" x2="15" y2="21"></line></svg>
+                                        Show on Map ({actionIdx + 1})
+                                    </button>
+                                );
+                            }
+                            if (action.type === 'path') {
+                                const uuid = action.args[0];
+                                const name = action.args.slice(1).join(':');
+                                return (
+                                    <button key={`action-path-${actionIdx}`} onClick={() => window.dispatchEvent(new CustomEvent('show-player-path', { detail: { player_uuid: uuid, player_name: name } }))} className="inline-flex items-center gap-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-300 border border-red-500/30 rounded-full px-2.5 py-1 text-xs font-medium transition-colors whitespace-nowrap">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z" /><circle cx="12" cy="10" r="3" /></svg>
+                                        Draw Path ({actionIdx + 1})
+                                    </button>
+                                );
+                            }
+                            return null;
+                        })}
+                    </div>
+                )}
+            </>
+        );
     };
 
 
