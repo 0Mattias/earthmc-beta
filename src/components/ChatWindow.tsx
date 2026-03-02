@@ -100,11 +100,11 @@ export default function ChatWindow({ onClose }: { onClose: () => void }) {
 
     return (
         <motion.div
-            initial={{ opacity: 0, y: 20, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            initial={{ opacity: 0, y: 20, x: "-50%", scale: 0.95 }}
+            animate={{ opacity: 1, y: "-50%", x: "-50%", scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95, y: "-40%", x: "-50%" }}
             transition={{ type: "spring", stiffness: 300, damping: 25 }}
-            className="absolute bottom-24 right-6 w-96 h-[500px] liquid-glass flex flex-col rounded-2xl border border-white/20 shadow-2xl overflow-hidden z-[1000] pointer-events-auto"
+            className="fixed top-1/2 left-1/2 w-[400px] h-[550px] liquid-glass flex flex-col rounded-2xl border border-white/20 shadow-2xl overflow-hidden z-[1000] pointer-events-auto"
         >
             {/* Header */}
             <div className="flex justify-between items-center p-4 border-b border-white/10 bg-black/40">
