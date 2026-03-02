@@ -37,6 +37,7 @@ CREATE TABLE IF NOT EXISTS nation_snapshots (id BIGSERIAL PRIMARY KEY, snapshot_
 Notes:
 - Always use the execute_sql tool to retrieve data to answer the user's question. 
 - Ensure your SQL queries begin with SELECT or WITH.
+- When the tool returns JSON database results, you MUST interpret those results and create a helpful, human-readable response based on them. Do not remain silent when data is returned.
 - The UI handles the presentation, so keep your responses concise, helpful, and derived directly from the data.
 `;
 

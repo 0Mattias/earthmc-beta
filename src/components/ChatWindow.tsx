@@ -5,7 +5,29 @@ export default function ChatWindow({ onClose }: { onClose: () => void }) {
     const [messages, setMessages] = useState<{ role: 'user' | 'assistant', content: string }[]>([]);
     const [input, setInput] = useState('');
     const [isThinking, setIsThinking] = useState(false);
+    const [loadingText, setLoadingText] = useState('Analyzing EarthMC data...');
     const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    const loadingPhrases = [
+        "Analyzing EarthMC data...",
+        "Querying the database...",
+        "Looking up town records...",
+        "Fetching player history...",
+        "Compiling server statistics...",
+        "Parsing nation lists..."
+    ];
+
+    useEffect(() => {
+        let interval: NodeJS.Timeout;
+        if (isThinking) {
+            let phraseIndex = 0;
+            interval = setInterval(() => {
+                phraseIndex = (phraseIndex + 1) % loadingPhrases.length;
+                setLoadingText(loadingPhrases[phraseIndex]);
+            }, 2500);
+        }
+        return () => clearInterval(interval);
+    }, [isThinking]);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -129,11 +151,25 @@ export default function ChatWindow({ onClose }: { onClose: () => void }) {
                                 </span>
                             ))}
                             {msg.role === 'assistant' && msg.content === '' && isThinking && (
-                                <span className="flex items-center gap-1 h-5">
-                                    <span className="w-1.5 h-1.5 bg-white/50 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                                    <span className="w-1.5 h-1.5 bg-white/50 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                                    <span className="w-1.5 h-1.5 bg-white/50 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                                </span>
+                                <div className="flex items-center gap-3 h-6 text-earthmc-green font-medium">
+                                    <motion.div
+                                        animate={{ rotate: 360 }}
+                                        transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                                        className="w-5 h-5 flex items-center justify-center shrink-0"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-full h-full">
+                                            <path d="M12 2L14.6 9.4L22 12L14.6 14.6L12 22L9.4 14.6L2 12L9.4 9.4L12 2Z" />
+                                        </svg>
+                                    </motion.div>
+                                    <motion.span
+                                        key={loadingText}
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: [0, 1, 1, 0] }}
+                                        transition={{ duration: 2.5, times: [0, 0.2, 0.8, 1] }}
+                                    >
+                                        {loadingText}
+                                    </motion.span>
+                                </div>
                             )}
                         </div>
                     </div>
