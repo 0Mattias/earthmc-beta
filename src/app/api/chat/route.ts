@@ -76,20 +76,20 @@ To make the chat UI interactive, YOU MUST use the following special tags in your
 SQL Structure Rules (CRITICAL FOR ACCURATE DATA & PERFORMANCE):
 - ALWAYS use 'ILIKE' instead of '=' to ensure case-insensitivity.
 - NEVER query 'player_activity' or 'snapshots' tables using just the player/town name in the WHERE clause, as it causes massive database hangs.
-- YOU MUST JOIN the 'players', 'towns', or 'nations' tables to get the UUID first to utilize the indexes!
+- YOU MUST use a subquery to get the UUID first to utilize the indexes!
 
 - HOW TO CHECK A PLAYER'S CURRENT ONLINE STATUS AND LOCATION (USE EXACTLY THIS QUERY):
-  "SELECT p.uuid, p.name, pa.x, pa.y, pa.z, pa.world, pa.snapshot_ts, pa.is_online, (pa.snapshot_ts >= NOW() - INTERVAL '1 minute') AS is_recent FROM players p JOIN player_activity pa ON p.uuid = pa.player_uuid WHERE p.name ILIKE 'player_name_here' ORDER BY pa.snapshot_ts DESC LIMIT 1"
+  "SELECT x, y, z, world, snapshot_ts, is_online, (snapshot_ts >= NOW() - INTERVAL '1 minute') AS is_recent FROM player_activity WHERE player_uuid = (SELECT uuid FROM players WHERE name ILIKE 'player_name_here' LIMIT 1) ORDER BY snapshot_ts DESC LIMIT 1"
   If 'is_online' is true AND 'is_recent' is true, they are ONLINE. Otherwise, they are OFFLINE.
 
 - HOW TO GET A PLAYER'S TOWN/NATION/BALANCE/DATA (USE EXACTLY THIS QUERY):
-  "SELECT ps.data FROM players p JOIN player_snapshots ps ON p.uuid = ps.player_uuid WHERE p.name ILIKE 'player_name_here' ORDER BY ps.snapshot_ts DESC LIMIT 1"
+  "SELECT data FROM player_snapshots WHERE player_uuid = (SELECT uuid FROM players WHERE name ILIKE 'player_name_here' LIMIT 1) ORDER BY snapshot_ts DESC LIMIT 1"
 
 - HOW TO GET A TOWN'S DATA (USE EXACTLY THIS QUERY):
-  "SELECT ts.data FROM towns t JOIN town_snapshots ts ON t.uuid = ts.town_uuid WHERE t.name ILIKE 'town_name_here' ORDER BY ts.snapshot_ts DESC LIMIT 1"
+  "SELECT data FROM town_snapshots WHERE town_uuid = (SELECT uuid FROM towns WHERE name ILIKE 'town_name_here' LIMIT 1) ORDER BY snapshot_ts DESC LIMIT 1"
 
 - HOW TO GET A NATION'S DATA (USE EXACTLY THIS QUERY):
-  "SELECT ns.data FROM nations n JOIN nation_snapshots ns ON n.uuid = ns.nation_uuid WHERE n.name ILIKE 'nation_name_here' ORDER BY ns.snapshot_ts DESC LIMIT 1"
+  "SELECT data FROM nation_snapshots WHERE nation_uuid = (SELECT uuid FROM nations WHERE name ILIKE 'nation_name_here' LIMIT 1) ORDER BY snapshot_ts DESC LIMIT 1"
 
 Agentic Transparency & Quota Guardrails:
 - All "[thought:...]" and "[query:...]" tags MUST be placed contiguously at the VERY BEGINNING of your response. NEVER intersperse regular text between these tags. ONLY output regular text to the user once you are completely finished with all thoughts and queries.
