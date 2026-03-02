@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 export default function ChatWindow({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) {
     const [messages, setMessages] = useState<{ role: 'user' | 'assistant', content: string }[]>([]);
     const [input, setInput] = useState('');
+    const [model, setModel] = useState<'fast' | 'smart'>('fast');
     const [isThinking, setIsThinking] = useState(false);
     const [loadingText, setLoadingText] = useState('Analyzing EarthMC data...');
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -77,7 +78,8 @@ export default function ChatWindow({ isOpen, onClose }: { isOpen: boolean, onClo
                     messages: [...messages, { role: 'user', content: userMsg }].map(m => ({
                         role: m.role,
                         content: m.content
-                    }))
+                    })),
+                    model: model
                 })
             });
 
@@ -326,11 +328,29 @@ export default function ChatWindow({ isOpen, onClose }: { isOpen: boolean, onClo
                 >
                     {/* Header */}
                     <div className="flex justify-between items-center p-3 px-4 border-b border-white/5 bg-black/20 rounded-t-2xl">
-                        <div className="flex items-center gap-2.5">
-                            <div className="w-8 h-8 rounded-full border border-earthmc-green/30 bg-earthmc-green/10 flex items-center justify-center text-emerald-400 shadow-[0_0_10px_rgba(74,222,128,0.1)]">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" /></svg>
+                        <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-2.5">
+                                <div className="w-8 h-8 rounded-full border border-earthmc-green/30 bg-earthmc-green/10 flex items-center justify-center text-emerald-400 shadow-[0_0_10px_rgba(74,222,128,0.1)]">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" /></svg>
+                                </div>
+                                <span className="font-medium text-white tracking-wide text-sm">Agent</span>
                             </div>
-                            <span className="font-medium text-white tracking-wide text-sm">Agent</span>
+                            <div className="flex items-center bg-black/40 rounded-lg p-0.5 border border-white/10 hidden sm:flex">
+                                <button
+                                    onClick={() => setModel('fast')}
+                                    className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${model === 'fast' ? 'bg-white/10 text-white shadow-sm' : 'text-white/40 hover:text-white/70'}`}
+                                    title="Faster responses, standard reasoning"
+                                >
+                                    Fast
+                                </button>
+                                <button
+                                    onClick={() => setModel('smart')}
+                                    className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${model === 'smart' ? 'bg-white/10 text-white shadow-sm' : 'text-white/40 hover:text-white/70'}`}
+                                    title="Deeper reasoning, slightly slower"
+                                >
+                                    Smart
+                                </button>
+                            </div>
                         </div>
                         <div className="flex items-center gap-1">
                             <button

@@ -110,7 +110,9 @@ Operational Security & Tone (HARDENED RULES):
 export async function POST(req: NextRequest) {
     try {
         const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-        const { messages } = await req.json();
+        const { messages, model } = await req.json();
+
+        const geminiModel = model === 'smart' ? 'gemini-3.1-pro-preview' : 'gemini-3-flash-preview';
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const formattedMessages = messages.map((msg: any) => ({
@@ -122,12 +124,12 @@ export async function POST(req: NextRequest) {
         const currentMessageText = formattedMessages[formattedMessages.length - 1].parts[0].text;
 
         const chat = ai.chats.create({
-            model: 'gemini-3.1-pro-preview',
+            model: geminiModel,
             history: history,
             config: {
                 systemInstruction: SYSTEM_PROMPT,
                 tools: [{ functionDeclarations: [executeSqlTool, queryAndAnalyzeTool] }],
-                temperature: 0.2,
+                temperature: 1,
                 safetySettings: [
                     { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
                     { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
@@ -235,7 +237,7 @@ export async function POST(req: NextRequest) {
 
                                     // Spin up a one-shot subagent to read the JSON
                                     const subagent = ai.models.generateContent({
-                                        model: 'gemini-3.1-pro-preview',
+                                        model: geminiModel,
                                         contents: `You are a strict data-analyst subagent for the EarthMC Agent. You have been handed raw JSON data from the PostgreSQL tracker. Look at the data and fulfill the analysis_goal exactly as requested. Keep your answer extremely concise, entirely factual, and do not use markdown formatting like asterisks.
                                         
 Analysis Goal: ${analysisGoal}
