@@ -259,11 +259,10 @@ export default function ChatWindow({ isOpen, onClose }: { isOpen: boolean, onClo
                                     <button
                                         key={key}
                                         onClick={() => window.dispatchEvent(new CustomEvent('fly-to-map', { detail: { lat: -Number(args[1]) / 8, lng: Number(args[0]) / 8 } }))}
-                                        className="inline-flex items-center gap-1 text-blue-300 hover:text-blue-200 font-medium text-[11px] px-1.5 py-0.5 rounded-md bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 hover:border-blue-500/30 transition-colors mx-1 cursor-pointer align-text-bottom translate-y-px"
+                                        className="inline-flex items-center text-blue-300 hover:text-blue-200 text-[11px] p-1 rounded-md bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 hover:border-blue-500/30 transition-colors mx-1 cursor-pointer align-text-bottom translate-y-px"
                                         title="Show on Map"
                                     >
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"></polygon><line x1="9" y1="3" x2="9" y2="18"></line><line x1="15" y1="6" x2="15" y2="21"></line></svg>
-                                        <span>Map</span>
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"></polygon><line x1="9" y1="3" x2="9" y2="18"></line><line x1="15" y1="6" x2="15" y2="21"></line></svg>
                                     </button>
                                 );
                             }
@@ -276,11 +275,10 @@ export default function ChatWindow({ isOpen, onClose }: { isOpen: boolean, onClo
                                     <button
                                         key={key}
                                         onClick={() => window.dispatchEvent(new CustomEvent('show-player-path', { detail: { player_uuid: uuid, player_name: name } }))}
-                                        className="inline-flex items-center gap-1 text-red-300 hover:text-red-200 font-medium text-[11px] px-1.5 py-0.5 rounded-md bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 hover:border-red-500/30 transition-colors mx-1 cursor-pointer align-text-bottom translate-y-px"
+                                        className="inline-flex items-center text-red-300 hover:text-red-200 text-[11px] p-1 rounded-md bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 hover:border-red-500/30 transition-colors mx-1 cursor-pointer align-text-bottom translate-y-px"
                                         title="Draw Path"
                                     >
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z" /><circle cx="12" cy="10" r="3" /></svg>
-                                        <span>Path</span>
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z" /><circle cx="12" cy="10" r="3" /></svg>
                                     </button>
                                 );
                             }
