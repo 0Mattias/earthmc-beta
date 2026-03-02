@@ -98,6 +98,58 @@ export default function ChatWindow({ onClose }: { onClose: () => void }) {
         }
     };
 
+    const renderMessageContent = (content: string) => {
+        return content.split('\n').map((line, lineIdx, linesArray) => {
+            const parts = line.split(/(\[(?:player|town|nation|action)[^\]]*\])/g);
+
+            return (
+                <span key={lineIdx}>
+                    {parts.map((part, partIdx) => {
+                        if (part.startsWith('[player:')) {
+                            const name = part.slice(8, -1);
+                            return <span key={partIdx} onClick={() => window.dispatchEvent(new CustomEvent('open-directory', { detail: { tab: 'players', search: name } }))} className="text-earthmc-green hover:underline cursor-pointer font-semibold">{name}</span>;
+                        }
+                        if (part.startsWith('[town:')) {
+                            const name = part.slice(6, -1);
+                            return <span key={partIdx} onClick={() => window.dispatchEvent(new CustomEvent('open-directory', { detail: { tab: 'towns', search: name } }))} className="text-amber-400 hover:underline cursor-pointer font-semibold">{name}</span>;
+                        }
+                        if (part.startsWith('[nation:')) {
+                            const name = part.slice(8, -1);
+                            return <span key={partIdx} onClick={() => window.dispatchEvent(new CustomEvent('open-directory', { detail: { tab: 'nations', search: name } }))} className="text-blue-400 hover:underline cursor-pointer font-semibold">{name}</span>;
+                        }
+                        if (part.startsWith('[action:map:')) {
+                            const coords = part.slice(12, -1).split(':');
+                            if (coords.length === 2) {
+                                const [x, z] = coords;
+                                return (
+                                    <button key={partIdx} onClick={() => window.dispatchEvent(new CustomEvent('fly-to-map', { detail: { lat: -Number(z) / 8, lng: Number(x) / 8 } }))} className="inline-flex items-center gap-1.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 border border-blue-500/30 rounded-full px-2.5 py-1 text-xs font-medium transition-colors mt-2 mb-1 mr-2 whitespace-nowrap">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"></polygon><line x1="9" y1="3" x2="9" y2="18"></line><line x1="15" y1="6" x2="15" y2="21"></line></svg>
+                                        Show on Map
+                                    </button>
+                                );
+                            }
+                        }
+                        if (part.startsWith('[action:path:')) {
+                            const args = part.slice(13, -1).split(':');
+                            if (args.length >= 2) {
+                                const uuid = args[0];
+                                const name = args.slice(1).join(':');
+                                return (
+                                    <button key={partIdx} onClick={() => window.dispatchEvent(new CustomEvent('show-player-path', { detail: { player_uuid: uuid, player_name: name } }))} className="inline-flex items-center gap-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-300 border border-red-500/30 rounded-full px-2.5 py-1 text-xs font-medium transition-colors mt-2 mb-1 mr-2 whitespace-nowrap">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z" /><circle cx="12" cy="10" r="3" /></svg>
+                                        Draw Path
+                                    </button>
+                                );
+                            }
+                        }
+                        return <span key={partIdx}>{part}</span>;
+                    })}
+                    {lineIdx !== linesArray.length - 1 && <br />}
+                </span>
+            );
+        });
+    };
+
     return (
         <motion.div
             initial={{ opacity: 0, y: 20, x: "-50%", scale: 0.95 }}
@@ -151,13 +203,8 @@ export default function ChatWindow({ onClose }: { onClose: () => void }) {
                                 : 'bg-black/20 text-gray-200 rounded-bl-sm border border-white/5 shadow-inner shadow-black/20'
                                 }`}
                         >
-                            {/* Simple text rendering. */}
-                            {msg.content.split('\n').map((line, i) => (
-                                <span key={i}>
-                                    {line}
-                                    {i !== msg.content.split('\n').length - 1 && <br />}
-                                </span>
-                            ))}
+                            {/* Tag parsed text rendering. */}
+                            {renderMessageContent(msg.content)}
                             {msg.role === 'assistant' && msg.content === '' && isThinking && (
                                 <div className="flex items-center gap-3 h-6 text-earthmc-green font-medium">
                                     <motion.div
