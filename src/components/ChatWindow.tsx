@@ -104,24 +104,27 @@ export default function ChatWindow({ isOpen, onClose }: { isOpen: boolean, onClo
         type Group = { type: 'group'; items: string[] };
         type TextItem = { type: 'text'; content: string };
         const groupedParts: (Group | TextItem)[] = [];
-        let currentGroup: string[] | null = null;
+
+        // Single master group for all thoughts/queries
+        const masterGroupItems: string[] = [];
+        const textParts: string[] = [];
 
         for (let i = 0; i < parts.length; i++) {
             const part = parts[i];
-
             if (part.startsWith('[query:') || part.startsWith('[thought:')) {
-                if (!currentGroup) {
-                    currentGroup = [];
-                    groupedParts.push({ type: 'group', items: currentGroup });
-                }
-                currentGroup.push(part);
-            } else if (part.trim() === '') {
-                // Ignore purely whitespace parts so we don't break groups or create empty "forehead" bubble padding
-                continue;
-            } else {
-                currentGroup = null;
-                groupedParts.push({ type: 'text', content: part });
+                masterGroupItems.push(part);
+            } else if (part.trim() !== '') {
+                // Collect actual text separate from thoughts
+                textParts.push(part);
             }
+        }
+
+        if (masterGroupItems.length > 0) {
+            groupedParts.push({ type: 'group', items: masterGroupItems });
+        }
+
+        if (textParts.length > 0) {
+            groupedParts.push({ type: 'text', content: textParts.join('') });
         }
 
         let globalActionPinCount = 0;
