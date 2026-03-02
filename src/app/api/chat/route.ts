@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
             }
         });
 
-        const responseStream = await chat.sendMessageStream(currentMessageText);
+        const responseStream = await chat.sendMessageStream({ message: currentMessageText });
 
         // Create a ReadableStream to stream the response chunks back directly to the client
         const stream = new ReadableStream({
