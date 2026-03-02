@@ -104,24 +104,32 @@ export default function ChatWindow({ onClose }: { onClose: () => void }) {
             animate={{ opacity: 1, y: "-50%", x: "-50%", scale: 1 }}
             exit={{ opacity: 0, scale: 0.95, y: "-40%", x: "-50%" }}
             transition={{ type: "spring", stiffness: 300, damping: 25 }}
-            className="fixed top-1/2 left-1/2 w-[400px] h-[550px] liquid-glass flex flex-col rounded-2xl border border-white/20 shadow-2xl overflow-hidden z-[1000] pointer-events-auto"
+            className="fixed top-1/2 left-1/2 w-[400px] h-[550px] liquid-glass flex flex-col rounded-2xl border border-white/10 shadow-2xl z-[1000] pointer-events-auto"
         >
             {/* Header */}
-            <div className="flex justify-between items-center p-4 border-b border-white/10 bg-black/40">
-                <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-earthmc-green to-emerald-600 flex items-center justify-center p-0.5">
-                        <div className="w-full h-full bg-black/50 rounded-full flex items-center justify-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" /></svg>
-                        </div>
+            <div className="flex justify-between items-center p-3 px-4 border-b border-white/5 bg-black/20 rounded-t-2xl">
+                <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-full border border-earthmc-green/30 bg-earthmc-green/10 flex items-center justify-center text-emerald-400 shadow-[0_0_10px_rgba(74,222,128,0.1)]">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" /></svg>
                     </div>
-                    <span className="font-bold text-white tracking-wide">EarthMC Agent</span>
+                    <span className="font-medium text-white tracking-wide text-sm">EarthMC Agent</span>
                 </div>
-                <button
-                    onClick={onClose}
-                    className="p-1.5 rounded-full hover:bg-white/10 transition-colors text-white/70 hover:text-white"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                </button>
+                <div className="flex items-center gap-1">
+                    <button
+                        onClick={() => setMessages([])}
+                        title="New Chat"
+                        className="p-1.5 rounded-full hover:bg-white/10 transition-colors text-white/50 hover:text-white"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14"></path></svg>
+                    </button>
+                    <button
+                        onClick={onClose}
+                        title="Close Chat"
+                        className="p-1.5 rounded-full hover:bg-white/10 transition-colors text-white/50 hover:text-white"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
             </div>
 
             {/* Messages Area */}
@@ -138,10 +146,10 @@ export default function ChatWindow({ onClose }: { onClose: () => void }) {
                 {messages.map((msg, idx) => (
                     <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                         <div
-                            className={`max-w-[85%] rounded-2xl px-4 py-2 ${msg.role === 'user'
-                                ? 'bg-earthmc-green/80 text-white rounded-br-sm'
-                                : 'bg-white/10 text-gray-100 rounded-bl-sm border border-white/5'
-                                } text-sm leading-relaxed`}
+                            className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-[13.5px] leading-relaxed tracking-wide ${msg.role === 'user'
+                                ? 'bg-white/10 text-white rounded-br-sm border border-white/10'
+                                : 'bg-black/20 text-gray-200 rounded-bl-sm border border-white/5 shadow-inner shadow-black/20'
+                                }`}
                         >
                             {/* Simple text rendering. */}
                             {msg.content.split('\n').map((line, i) => (
@@ -178,22 +186,22 @@ export default function ChatWindow({ onClose }: { onClose: () => void }) {
             </div>
 
             {/* Input Area */}
-            <div className="p-3 bg-black/20 border-t border-white/10">
+            <div className="p-3 border-t border-white/5 bg-black/20 rounded-b-2xl">
                 <form onSubmit={handleSubmit} className="flex gap-2 items-center">
                     <input
                         type="text"
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         disabled={isThinking}
-                        placeholder="Search the database..."
-                        className="flex-1 bg-black/30 border border-white/10 rounded-full px-4 py-2 text-sm text-white focus:outline-none focus:border-blue-400/50 focus:ring-1 focus:ring-blue-400/50 transition-all placeholder:text-white/40 disabled:opacity-50"
+                        placeholder="Message EarthMC Agent..."
+                        className="flex-1 bg-white/5 border border-white/10 rounded-full px-4 py-2 text-sm text-white focus:outline-none focus:border-white/20 focus:bg-white/10 transition-all placeholder:text-white/30 disabled:opacity-50"
                     />
                     <button
                         type="submit"
                         disabled={isThinking || !input.trim()}
-                        className="w-10 h-10 rounded-full bg-earthmc-green/80 hover:bg-earthmc-green text-white flex items-center justify-center shrink-0 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_15px_rgba(74,222,128,0.3)]"
+                        className="w-10 h-10 rounded-full bg-earthmc-green/10 hover:bg-earthmc-green/20 border border-earthmc-green/30 text-emerald-400 flex items-center justify-center shrink-0 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
                     >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-0.5"><line x1="22" x2="11" y1="2" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" /></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="ml-0.5"><line x1="22" x2="11" y1="2" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" /></svg>
                     </button>
                 </form>
             </div>
