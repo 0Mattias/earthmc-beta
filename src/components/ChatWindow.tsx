@@ -174,7 +174,10 @@ export default function ChatWindow({ isOpen, onClose }: { isOpen: boolean, onClo
         }
 
         const renderedGroups = groupedParts.map((group, groupIdx) => {
-            if (group.type === 'group' && group.items.length > 0) {
+            if (group.type === 'group') {
+                // If there are no items in the group, don't render an empty "Finished Thinking" block
+                if (group.items.length === 0) return null;
+
                 return (
                     <details key={`grp-${groupIdx}`} className="group my-2 bg-black/20 border border-white/[0.03] rounded-xl overflow-hidden w-full text-xs shadow-sm">
                         <summary className="px-3 py-2 flex items-center justify-between text-white/50 hover:text-white/70 hover:bg-white/[0.02] select-none outline-none font-medium cursor-pointer transition-colors">

@@ -214,8 +214,10 @@ export async function POST(req: NextRequest) {
                                 if (textPart.includes('getResponse:') || textPart.includes('<ctrl') || textPart.includes('{"functionCall"')) {
                                     continue;
                                 }
-                                generatedSomeText = true;
-                                controller.enqueue(new TextEncoder().encode(textPart));
+                                if (textPart.trim() !== '') {
+                                    generatedSomeText = true;
+                                    controller.enqueue(new TextEncoder().encode(textPart));
+                                }
                             }
                         }
 
@@ -234,7 +236,8 @@ export async function POST(req: NextRequest) {
                             // If a tool is called but no text was generated beforehand, force a synthetic thought so the UI knows we are working
                             if (!generatedSomeText) {
                                 generatedSomeText = true;
-                                controller.enqueue(new TextEncoder().encode(`[query:Executing ${toolCall.name} against database...]`));
+                                const actionName = toolCall.name === 'execute_sql' ? 'Searching Database' : 'Subagent Analyzing Data';
+                                controller.enqueue(new TextEncoder().encode(`[query:${actionName}...]`));
                             }
                         }
 
