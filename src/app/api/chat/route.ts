@@ -66,7 +66,7 @@ To make the chat UI interactive, YOU MUST use the following special tags in your
 1. When mentioning a Player, wrap their name: '[player:PlayerName]'
 2. When mentioning a Town, wrap its name: '[town:TownName]'
 3. When mentioning a Nation, wrap its name: '[nation:NationName]'
-4. If you report a player's coordinates (whether online or last seen), ALWAYS append a map action button IN THE SAME LINE with no newlines before it: '[action:map:X:Z]' (replace X and Z with the integers).
+4. If you report a player's coordinates (whether online or last seen), ALWAYS append a map action button IN THE SAME LINE with no newlines before it: '[action:map:X:Z:UUID]' (replace X and Z with integers, and UUID with the player's uuid). If it's a town or nation, omit the UUID: '[action:map:X:Z]'.
 5. If you talk about a player and you know their UUID from the activity tables, ALWAYS append a draw path action button IN THE SAME LINE directly after their name, with no newlines before it: '[action:path:UUID:PlayerName]'
 6. ALWAYS wrap your internal thought processes or general reasoning in this tag: '[thought:Your thought process here...]'
 7. Before calling a database tool, wrap your thought in a query tag instead: '[query:I am executing a SQL scan...]'

@@ -9,6 +9,7 @@ export default function ChatWindow({ isOpen, onClose }: { isOpen: boolean, onClo
     const [loadingText, setLoadingText] = useState('Analyzing EarthMC data...');
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const abortControllerRef = useRef<AbortController | null>(null);
+    const livePlayersRef = useRef<Map<string, { x: number; z: number }>>(new Map());
 
     const handleStop = () => {
         if (abortControllerRef.current) {
@@ -17,6 +18,17 @@ export default function ChatWindow({ isOpen, onClose }: { isOpen: boolean, onClo
             setIsThinking(false);
         }
     };
+
+    useEffect(() => {
+        const handleMapPlayersUpdate = (e: Event) => {
+            const customEvent = e as CustomEvent;
+            if (customEvent.detail) {
+                livePlayersRef.current = customEvent.detail;
+            }
+        };
+        window.addEventListener('map-players-update', handleMapPlayersUpdate);
+        return () => window.removeEventListener('map-players-update', handleMapPlayersUpdate);
+    }, []);
 
     useEffect(() => {
         const loadingPhrases = [
@@ -254,11 +266,26 @@ export default function ChatWindow({ isOpen, onClose }: { isOpen: boolean, onClo
                             lineNodes.push(<span key={key} onClick={() => window.dispatchEvent(new CustomEvent('open-directory', { detail: { tab: 'nations', search: name } }))} className="text-blue-400 hover:underline cursor-pointer font-semibold">{name}</span>);
                         } else if (subPart.startsWith('[action:map:')) {
                             const args = subPart.slice(12, -1).split(':');
-                            if (args.length === 2) {
+                            if (args.length >= 2) {
                                 lineNodes.push(
                                     <button
                                         key={key}
-                                        onClick={() => window.dispatchEvent(new CustomEvent('fly-to-map', { detail: { lat: -Number(args[1]) / 8, lng: Number(args[0]) / 8 } }))}
+                                        onClick={() => {
+                                            let finalX = Number(args[0]);
+                                            let finalZ = Number(args[1]);
+
+                                            // Real-time tracking fallback if UUID is provided
+                                            if (args.length >= 3) {
+                                                const uuid = args[2];
+                                                const livePlayer = livePlayersRef.current.get(uuid);
+                                                if (livePlayer) {
+                                                    finalX = livePlayer.x;
+                                                    finalZ = livePlayer.z;
+                                                }
+                                            }
+
+                                            window.dispatchEvent(new CustomEvent('fly-to-map', { detail: { lat: -finalZ / 8, lng: finalX / 8 } }));
+                                        }}
                                         className="inline-flex items-center text-blue-300 hover:text-blue-200 text-[11px] p-1 rounded-md bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 hover:border-blue-500/30 transition-colors mx-1 cursor-pointer align-text-bottom translate-y-px"
                                         title="Show on Map"
                                     >
