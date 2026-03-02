@@ -313,19 +313,19 @@ export default function DirectoryDropdown({ activeTab, initialSearch = '' }: { a
                                     layout
                                     key={itemUuid}
                                     onClick={() => setExpandedItem(isExpanded ? null : itemUuid)}
-                                    className="bg-white/5 border border-white/10 hover:bg-white/10 backdrop-blur-sm shadow-lg transition-colors rounded-2xl overflow-hidden cursor-pointer flex flex-col"
+                                    className={`group bg-black/20 border ${isExpanded ? 'border-earthmc-green/30 bg-black/40' : 'border-white/[0.05]'} hover:border-earthmc-green/30 hover:bg-black/30 backdrop-blur-md shadow-lg transition-all duration-300 rounded-2xl overflow-hidden cursor-pointer flex flex-col`}
                                 >
                                     <motion.div layout className="px-4 py-3 flex flex-col justify-center">
                                         <div className="flex justify-between items-center mb-0.5">
-                                            <div className="font-bold text-base text-white truncate max-w-[70%]">
+                                            <div className="font-bold text-base text-white truncate max-w-[70%] group-hover:text-earthmc-green transition-colors">
                                                 {itemName}
                                             </div>
                                             {activeTab === 'players' && (
-                                                <span className={`text-[10px] px-2 py-0.5 rounded-full border shrink-0 ${(item.status?.isOnline && !item.status?.isHidden)
-                                                    ? 'bg-earthmc-green/20 text-earthmc-green border-earthmc-green/50'
+                                                <span className={`text-[10px] px-2 py-0.5 rounded-full border shrink-0 transition-colors ${(item.status?.isOnline && !item.status?.isHidden)
+                                                    ? 'bg-earthmc-green/10 text-earthmc-green border-earthmc-green/30 shadow-[0_0_8px_rgba(74,222,128,0.15)]'
                                                     : (item.status?.isOnline && item.status?.isHidden)
-                                                        ? 'bg-orange-500/20 text-orange-400 border-orange-500/50'
-                                                        : 'bg-gray-500/20 text-gray-400 border-gray-500/50'
+                                                        ? 'bg-orange-500/10 text-orange-400 border-orange-500/30'
+                                                        : 'bg-white/5 text-gray-400 border-white/10'
                                                     }`}>
                                                     {(item.status?.isOnline && !item.status?.isHidden) ? 'Online' : (item.status?.isOnline && item.status?.isHidden) ? 'Last Seen' : 'Offline'}
                                                 </span>
@@ -333,23 +333,25 @@ export default function DirectoryDropdown({ activeTab, initialSearch = '' }: { a
                                         </div>
 
                                         {activeTab === 'players' && (
-                                            <div className="flex justify-between items-center mt-0.5">
-                                                <div className="text-sm text-yellow-400 font-medium">
+                                            <div className="flex justify-between items-center mt-1">
+                                                <div className="text-sm text-yellow-500/90 font-medium flex items-center gap-1">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="8"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
                                                     {Number(item.stats?.balance || 0).toFixed(2)} G
                                                 </div>
-                                                <div className="text-xs font-mono text-gray-400 bg-black/30 px-2 py-1 rounded min-w-[32px] text-center">
+                                                <div className="text-xs font-mono text-gray-400 bg-black/30 border border-white/5 px-2 py-1 rounded-md min-w-[32px] text-center">
                                                     {item.location ? `${item.location.x}, ${item.location.z}` : '?'}
                                                 </div>
                                             </div>
                                         )}
 
                                         {activeTab === 'towns' && (
-                                            <div className="flex justify-between items-center mt-0.5">
-                                                <div className="text-sm text-yellow-400 font-medium shrink-0">
+                                            <div className="flex justify-between items-center mt-1">
+                                                <div className="text-sm text-yellow-500/90 font-medium flex items-center gap-1 shrink-0">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="8"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
                                                     {Number(item.stats?.balance || 0).toFixed(2)} G
                                                 </div>
                                                 {(item.coordinates?.homeBlock || item.coordinates?.spawn) ? (
-                                                    <div className="text-xs font-mono text-gray-400 bg-black/30 px-2 py-1 rounded min-w-[32px] text-center truncate ml-2">
+                                                    <div className="text-xs font-mono text-gray-400 bg-black/30 border border-white/5 px-2 py-1 rounded-md min-w-[32px] text-center truncate ml-2">
                                                         {item.coordinates?.homeBlock ?
                                                             `${item.coordinates.homeBlock[0] * 16}, ${item.coordinates.homeBlock[1] * 16}` :
                                                             item.coordinates?.spawn ?
@@ -358,17 +360,18 @@ export default function DirectoryDropdown({ activeTab, initialSearch = '' }: { a
                                                         }
                                                     </div>
                                                 ) : (
-                                                    <div className="text-xs text-gray-500 truncate ml-2">Nation: {nationName || 'None'}</div>
+                                                    <div className="text-xs text-blue-400/80 font-medium truncate ml-2 border border-blue-400/20 bg-blue-400/10 px-2 py-0.5 rounded-full">{nationName || 'None'}</div>
                                                 )}
                                             </div>
                                         )}
 
                                         {activeTab === 'nations' && (
-                                            <div className="flex justify-between items-center mt-0.5">
-                                                <div className="text-sm text-yellow-400 font-medium shrink-0">
+                                            <div className="flex justify-between items-center mt-1">
+                                                <div className="text-sm text-yellow-500/90 font-medium flex items-center gap-1 shrink-0">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="8"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
                                                     {Number(item.stats?.balance || 0).toFixed(2)} G
                                                 </div>
-                                                <div className="text-xs font-mono text-gray-400 bg-black/30 px-2 py-1 rounded min-w-[32px] text-center truncate ml-2">
+                                                <div className="text-xs text-amber-500/80 font-medium truncate ml-2 border border-amber-500/20 bg-amber-500/10 px-2 py-0.5 rounded-full">
                                                     {item.capital?.name ? `${item.capital.name}` : '?'}
                                                 </div>
                                             </div>
@@ -382,12 +385,12 @@ export default function DirectoryDropdown({ activeTab, initialSearch = '' }: { a
                                                 animate={{ height: "auto", opacity: 1 }}
                                                 exit={{ height: 0, opacity: 0 }}
                                                 transition={{ duration: 0.2 }}
-                                                className="bg-black/30 border-t border-white/5 px-4 pb-4 pt-2"
+                                                className="bg-black/50 border-t border-white/5 px-4 pb-4 pt-3"
                                             >
                                                 {activeTab === 'players' && (
                                                     <div className="space-y-3 text-sm text-gray-300 mt-2">
                                                         {/* Relationships */}
-                                                        <div className="bg-black/20 p-3 rounded-xl border border-white/5 space-y-2">
+                                                        <div className="bg-white/[0.02] p-3 rounded-xl border border-white/[0.05] space-y-2">
                                                             {item.title && <div className="flex justify-between"><span className="text-gray-500">Title</span><span className="text-right ml-4">{String(item.title).replace(/<[^>]*>?/gm, '')}</span></div>}
                                                             <div className="flex justify-between"><span className="text-gray-500">Town</span>{townName ? <span onClick={(e) => { e.stopPropagation(); window.dispatchEvent(new CustomEvent('open-directory', { detail: { tab: 'towns', search: townName } })); }} className="text-right ml-4 cursor-pointer hover:underline hover:text-earthmc-green transition-colors text-white">{townName}</span> : <span className="text-gray-400 italic">None (Nomad)</span>}</div>
                                                             <div className="flex justify-between"><span className="text-gray-500">Nation</span>{nationName ? <span onClick={(e) => { e.stopPropagation(); window.dispatchEvent(new CustomEvent('open-directory', { detail: { tab: 'nations', search: nationName } })); }} className="text-right ml-4 cursor-pointer hover:underline hover:text-earthmc-green transition-colors text-white">{nationName}</span> : <span className="text-gray-400 italic">None</span>}</div>
@@ -396,7 +399,7 @@ export default function DirectoryDropdown({ activeTab, initialSearch = '' }: { a
                                                         </div>
 
                                                         {/* Stats & Time */}
-                                                        <div className="bg-black/20 p-3 rounded-xl border border-white/5 space-y-2">
+                                                        <div className="bg-white/[0.02] p-3 rounded-xl border border-white/[0.05] space-y-2">
                                                             {item.timestamps?.registered && (
                                                                 <div className="flex justify-between"><span className="text-gray-500">Registered</span><span className="text-right ml-4">{new Date(item.timestamps.registered).toLocaleDateString()}</span></div>
                                                             )}
@@ -465,7 +468,7 @@ export default function DirectoryDropdown({ activeTab, initialSearch = '' }: { a
                                                 {activeTab === 'towns' && (
                                                     <div className="space-y-3 text-sm text-gray-300 mt-2">
                                                         {/* Relationships */}
-                                                        <div className="bg-black/20 p-3 rounded-xl border border-white/5 space-y-2">
+                                                        <div className="bg-white/[0.02] p-3 rounded-xl border border-white/[0.05] space-y-2">
                                                             {item.mayor && typeof item.mayor === 'object' && 'name' in item.mayor && (
                                                                 <div className="flex justify-between"><span className="text-gray-500">Mayor</span><span onClick={(e) => { e.stopPropagation(); window.dispatchEvent(new CustomEvent('open-directory', { detail: { tab: 'players', search: String((item.mayor as { name: string }).name) } })); }} className="text-right ml-4 cursor-pointer hover:underline hover:text-earthmc-green transition-colors text-white">{String((item.mayor as { name: string }).name)}</span></div>
                                                             )}
@@ -478,7 +481,7 @@ export default function DirectoryDropdown({ activeTab, initialSearch = '' }: { a
                                                         </div>
 
                                                         {/* Stats & Time */}
-                                                        <div className="bg-black/20 p-3 rounded-xl border border-white/5 space-y-2">
+                                                        <div className="bg-white/[0.02] p-3 rounded-xl border border-white/[0.05] space-y-2">
                                                             {item.stats && typeof item.stats === 'object' && 'numResidents' in item.stats && (
                                                                 <div className="flex justify-between"><span className="text-gray-500">Residents</span><span>{String(Number(item.stats.numResidents))}</span></div>
                                                             )}
@@ -513,7 +516,7 @@ export default function DirectoryDropdown({ activeTab, initialSearch = '' }: { a
                                                 {activeTab === 'nations' && (
                                                     <div className="space-y-3 text-sm text-gray-300 mt-2">
                                                         {/* Relationships */}
-                                                        <div className="bg-black/20 p-3 rounded-xl border border-white/5 space-y-2">
+                                                        <div className="bg-white/[0.02] p-3 rounded-xl border border-white/[0.05] space-y-2">
                                                             {item.king && typeof item.king === 'object' && 'name' in item.king && (
                                                                 <div className="flex justify-between"><span className="text-gray-500">King</span><span onClick={(e) => { e.stopPropagation(); window.dispatchEvent(new CustomEvent('open-directory', { detail: { tab: 'players', search: String((item.king as { name: string }).name) } })); }} className="text-right ml-4 cursor-pointer hover:underline hover:text-earthmc-green transition-colors text-white">{String((item.king as { name: string }).name)}</span></div>
                                                             )}
@@ -526,7 +529,7 @@ export default function DirectoryDropdown({ activeTab, initialSearch = '' }: { a
                                                         </div>
 
                                                         {/* Stats & Time */}
-                                                        <div className="bg-black/20 p-3 rounded-xl border border-white/5 space-y-2">
+                                                        <div className="bg-white/[0.02] p-3 rounded-xl border border-white/[0.05] space-y-2">
                                                             {item.stats && typeof item.stats === 'object' && 'numTowns' in item.stats && (
                                                                 <div className="flex justify-between"><span className="text-gray-500">Towns</span><span>{String(Number(item.stats.numTowns))}</span></div>
                                                             )}
