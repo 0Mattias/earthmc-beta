@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
         let paramIndex = 1;
 
         if (search) {
-            whereClause += ` AND data->>'name' ILIKE $${paramIndex}`;
+            whereClause += ` AND nation_name ILIKE $${paramIndex}`;
             queryParams.push(`%${search}%`);
             paramIndex++;
         }
@@ -39,13 +39,13 @@ export async function GET(request: NextRequest) {
         const countRes = await pool.query(countQuery, queryParams);
         const totalCount = parseInt(countRes.rows[0].count, 10);
 
-        let orderByStr = `LOWER(data->>'name') ${sortOrder}`;
+        let orderByStr = `LOWER(nation_name) ${sortOrder}`;
         if (sortBy === 'balance') {
-            orderByStr = `(data->'stats'->>'balance')::numeric ${sortOrder} NULLS LAST, LOWER(data->>'name') ASC`;
+            orderByStr = `(data->'stats'->>'balance')::numeric ${sortOrder} NULLS LAST, LOWER(nation_name) ASC`;
         } else if (sortBy === 'residents') {
-            orderByStr = `(data->'stats'->>'numResidents')::numeric ${sortOrder} NULLS LAST, LOWER(data->>'name') ASC`;
+            orderByStr = `(data->'stats'->>'numResidents')::numeric ${sortOrder} NULLS LAST, LOWER(nation_name) ASC`;
         } else if (sortBy === 'towns') {
-            orderByStr = `(data->'stats'->>'numTowns')::numeric ${sortOrder} NULLS LAST, LOWER(data->>'name') ASC`;
+            orderByStr = `(data->'stats'->>'numTowns')::numeric ${sortOrder} NULLS LAST, LOWER(nation_name) ASC`;
         }
 
         // Get paginated data

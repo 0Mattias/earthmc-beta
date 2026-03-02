@@ -42,8 +42,6 @@ const queryAndAnalyzeTool = {
     parameters: queryAndAnalyzeSchema
 };
 
-// fetchOnlineApi tool removed.
-
 const SYSTEM_PROMPT = `You are a helpful database query assistant for the EarthMC Minecraft server tracker.
 You are tasked with answering user questions about players, towns, nations, and their real-time or historical data.
 
@@ -293,7 +291,7 @@ export async function POST(req: NextRequest) {
                                         }
 
                                         // Spin up a one-shot subagent to read the JSON
-                                        const subagent = ai.models.generateContent({
+                                        const response = await ai.models.generateContent({
                                             model: geminiModel,
                                             contents: `You are a strict data-analyst subagent for the EarthMC Agent. You have been handed raw JSON data from the PostgreSQL tracker. Look at the data and fulfill the analysis_goal exactly as requested. Keep your answer extremely concise, entirely factual, and do not use markdown formatting like asterisks.
                                             
@@ -304,7 +302,6 @@ Raw Data:
 ${dbResultStr}`
                                         });
 
-                                        const response = await subagent;
                                         subagentResponseStr = response.text || "Subagent failed to generate an analysis.";
                                     } catch (aiError: any) {
                                         subagentResponseStr = `Subagent Error: ${aiError.message}`;

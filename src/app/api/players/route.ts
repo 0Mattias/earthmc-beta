@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
         let paramIndex = 1;
 
         if (search) {
-            whereClause += ` AND ps.data->>'name' ILIKE $${paramIndex}`;
+            whereClause += ` AND ps.player_name ILIKE $${paramIndex}`;
             queryParams.push(`%${search}%`);
             paramIndex++;
         }
@@ -40,11 +40,11 @@ export async function GET(request: NextRequest) {
         let totalCount = parseInt(countRes.rows[0].count, 10);
 
         // Determine ORDER BY clause
-        let orderByStr = `LOWER(ps.data->>'name') ${sortOrder}`;
+        let orderByStr = `LOWER(ps.player_name) ${sortOrder}`;
         if (sortBy === 'balance') {
-            orderByStr = `(ps.data->'stats'->>'balance')::numeric ${sortOrder} NULLS LAST, LOWER(ps.data->>'name') ASC`;
+            orderByStr = `(ps.data->'stats'->>'balance')::numeric ${sortOrder} NULLS LAST, LOWER(ps.player_name) ASC`;
         } else if (sortBy === 'online') {
-            orderByStr = `COALESCE(ap.is_online, FALSE) DESC, (ps.data->'timestamps'->>'lastOnline')::numeric DESC NULLS LAST, LOWER(ps.data->>'name') ASC`;
+            orderByStr = `COALESCE(ap.is_online, FALSE) DESC, (ps.data->'timestamps'->>'lastOnline')::numeric DESC NULLS LAST, LOWER(ps.player_name) ASC`;
         }
 
         // Get paginated data, join with player_activity to get latest coordinates
@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
             paginated_players AS (
                 SELECT ps.data, ap.is_visible, ap.is_online
                 FROM player_snapshots ps
-                LEFT JOIN active_players ap ON ps.data->>'uuid' = ap.player_uuid
+                LEFT JOIN active_players ap ON ps.player_uuid = ap.player_uuid
                 WHERE ${whereClause}
                 ORDER BY ${orderByStr}
                 LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
