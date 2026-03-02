@@ -161,7 +161,7 @@ export async function POST(req: NextRequest) {
             config: {
                 systemInstruction: SYSTEM_PROMPT,
                 tools: [{ functionDeclarations: [executeSqlTool, queryAndAnalyzeTool] }],
-                temperature: 0.2,
+                temperature: 1,
                 safetySettings: [
                     { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
                     { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
