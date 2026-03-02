@@ -76,10 +76,12 @@ To make the chat UI interactive, YOU MUST use the following special tags in your
 SQL Structure Rules (CRITICAL FOR ACCURATE DATA & PERFORMANCE):
 - ALWAYS use 'ILIKE' instead of '=' to ensure case-insensitivity.
 - NEVER query 'player_activity' or 'snapshots' tables using just the player/town name in the WHERE clause, as it causes massive database hangs.
+- CRITICAL: 'player_activity' is partitioned by 'snapshot_ts'. Any query against it MUST include a timestamp bound like "AND snapshot_ts >= NOW() - INTERVAL '7 days'" to utilize partition pruning. Without this, the query will hang forever.
+- ALWAYS append 'LIMIT 100' or similar bounds to your queries to avoid returning too much data.
 - YOU MUST use a subquery to get the UUID first to utilize the indexes!
 
 - HOW TO CHECK A PLAYER'S CURRENT ONLINE STATUS AND LOCATION (USE EXACTLY THIS QUERY):
-  "SELECT x, y, z, world, snapshot_ts, is_online, (snapshot_ts >= NOW() - INTERVAL '1 minute') AS is_recent FROM player_activity WHERE player_uuid = (SELECT uuid FROM players WHERE name ILIKE 'player_name_here' LIMIT 1) ORDER BY snapshot_ts DESC LIMIT 1"
+  "SELECT x, y, z, world, snapshot_ts, is_online, (snapshot_ts >= NOW() - INTERVAL '1 minute') AS is_recent FROM player_activity WHERE player_uuid = (SELECT uuid FROM players WHERE name ILIKE 'player_name_here' LIMIT 1) AND snapshot_ts >= NOW() - INTERVAL '24 hours' ORDER BY snapshot_ts DESC LIMIT 1"
   If 'is_online' is true AND 'is_recent' is true, they are ONLINE. Otherwise, they are OFFLINE.
 
 - HOW TO GET A PLAYER'S TOWN/NATION/BALANCE/DATA (USE EXACTLY THIS QUERY):
@@ -214,12 +216,27 @@ export async function POST(req: NextRequest) {
                             if (!query.toUpperCase().startsWith('SELECT') && !query.toUpperCase().startsWith('WITH')) {
                                 dbResultStr = "Error: Only SELECT queries are allowed.";
                             } else {
+                                const client = await pool.connect();
                                 try {
-                                    const dbRes = await pool.query(query);
-                                    dbResultStr = JSON.stringify(dbRes.rows, null, 2);
+                                    await client.query('BEGIN');
+                                    await client.query("SET LOCAL statement_timeout = '10s'");
+                                    const dbRes = await client.query(query);
+                                    await client.query('COMMIT');
+
+                                    const safeRows = dbRes.rows.slice(0, 100);
+                                    dbResultStr = JSON.stringify(safeRows, null, 2);
+                                    if (dbRes.rows.length > 100) {
+                                        dbResultStr += `\n\n...[TRUNCATED. Query returned ${dbRes.rows.length} rows, only showing first 100. Please append LIMIT to your query, or use 'query_and_analyze' tool for large datasets.]`;
+                                    }
+                                    if (dbResultStr.length > 50000) {
+                                        dbResultStr = dbResultStr.substring(0, 50000) + "\n\n...[TRUNCATED DUE TO SIZE MAX LIMIT]";
+                                    }
                                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                 } catch (dbError: any) {
+                                    await client.query('ROLLBACK');
                                     dbResultStr = `Database Error: ${dbError.message}`;
+                                } finally {
+                                    client.release();
                                 }
                             }
 
@@ -239,13 +256,24 @@ export async function POST(req: NextRequest) {
                             if (!query.toUpperCase().startsWith('SELECT') && !query.toUpperCase().startsWith('WITH')) {
                                 subagentResponseStr = "Error: Only SELECT queries are allowed.";
                             } else {
+                                const client = await pool.connect();
                                 try {
-                                    const dbRes = await pool.query(query);
-                                    let dbResultStr = JSON.stringify(dbRes.rows, null, 2);
+                                    await client.query('BEGIN');
+                                    await client.query("SET LOCAL statement_timeout = '20s'");
+                                    const dbRes = await client.query(query);
+                                    await client.query('COMMIT');
 
-                                    // Truncate massively gigantic JSON so the subagent doesn't crash on input limit
-                                    if (dbResultStr.length > 500000) {
-                                        dbResultStr = dbResultStr.substring(0, 500000) + "\n\n...[TRUNCATED DUE TO EXTREME SIZE]...";
+                                    // Safety limit to prevent JSON.stringify from OOM crashing
+                                    const safeRows = dbRes.rows.slice(0, 20000);
+                                    let dbResultStr = JSON.stringify(safeRows, null, 2);
+
+                                    if (dbRes.rows.length > 20000) {
+                                        dbResultStr += `\n\n...[TRUNCATED. Query returned ${dbRes.rows.length} rows overall.]`;
+                                    }
+
+                                    // Truncate string size so subagent doesn't crash on input token limit
+                                    if (dbResultStr.length > 150000) {
+                                        dbResultStr = dbResultStr.substring(0, 150000) + "\n\n...[TRUNCATED DUE TO EXTREME SIZE MAX LIMIT]...";
                                     }
 
                                     // Spin up a one-shot subagent to read the JSON
@@ -265,7 +293,10 @@ ${dbResultStr}`
 
                                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                 } catch (dbError: any) {
+                                    await client.query('ROLLBACK');
                                     subagentResponseStr = `Subagent/Database Error: ${dbError.message}`;
+                                } finally {
+                                    client.release();
                                 }
                             }
 
