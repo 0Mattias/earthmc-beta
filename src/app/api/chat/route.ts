@@ -42,16 +42,7 @@ const queryAndAnalyzeTool = {
     parameters: queryAndAnalyzeSchema
 };
 
-const fetchOnlineApiSchema: Schema = {
-    type: Type.OBJECT,
-    properties: {}, // No parameters required
-};
-
-const fetchOnlineApiTool = {
-    name: "fetch_online_api",
-    description: "Fetches the real-time currently online player list directly from the EarthMC API (https://api.earthmc.net/v3/aurora/online). Use this to definitively verify if a player is online or to get the true real-time online count.",
-    parameters: fetchOnlineApiSchema
-};
+// fetchOnlineApi tool removed.
 
 const SYSTEM_PROMPT = `You are a helpful database query assistant for the EarthMC Minecraft server tracker.
 You are tasked with answering user questions about players, towns, nations, and their real-time or historical data.
@@ -82,17 +73,23 @@ To make the chat UI interactive, YOU MUST use the following special tags in your
 6. ALWAYS wrap your internal thought processes or general reasoning in this tag: '[thought:Your thought process here...]'
 7. Before calling a database tool, wrap your thought in a query tag instead: '[query:I am executing a SQL scan...]'
 
-SQL Structure Rules (CRITICAL FOR ACCURATE DATA):
-- ALWAYS use 'ILIKE' instead of '=' when searching by player, town, or nation names to ensure case-insensitivity.
-- NEVER query physical partition storage buckets directly (e.g. 'player_activity_2026...'). Only query 'player_activity'.
-- HOW TO CHECK A PLAYER'S CURRENT ONLINE STATUS AND LOCATION (YOU MUST USE EXACTLY THIS QUERY, DO NOT INVENT ONE):
-  "SELECT x, y, z, world, snapshot_ts, is_online FROM player_activity WHERE player_name ILIKE 'player_name_here' ORDER BY snapshot_ts DESC LIMIT 1"
-  Then, evaluate the exact result: If 'is_online' is TRUE AND the 'snapshot_ts' is within the last 1 minute of NOW(), the player is ONLINE in the tracker.
-  If 'is_online' is false OR 'snapshot_ts' is older than 1 minute, the tracker thinks they are OFFLINE. DO NOT rely only on 'is_online', the timestamp is critical.
-- HOW TO GET A PLAYER'S TOWN/NATION/BALANCE:
-  "SELECT data FROM player_snapshots WHERE player_name ILIKE 'player_name_here' ORDER BY snapshot_ts DESC LIMIT 1"
-- ALWAYS append "ORDER BY snapshot_ts DESC LIMIT 1" when asking about the historical/current state of towns or nations, otherwise you will fetch thousands of outdated logs.
-- NEVER try to combine finding a player's coordinates and their town data into a single query. Query them separately.
+SQL Structure Rules (CRITICAL FOR ACCURATE DATA & PERFORMANCE):
+- ALWAYS use 'ILIKE' instead of '=' to ensure case-insensitivity.
+- NEVER query 'player_activity' or 'snapshots' tables using just the player/town name in the WHERE clause, as it causes massive database hangs.
+- YOU MUST JOIN the 'players', 'towns', or 'nations' tables to get the UUID first to utilize the indexes!
+
+- HOW TO CHECK A PLAYER'S CURRENT ONLINE STATUS AND LOCATION (USE EXACTLY THIS QUERY):
+  "SELECT p.uuid, p.name, pa.x, pa.y, pa.z, pa.world, pa.snapshot_ts, pa.is_online, (pa.snapshot_ts >= NOW() - INTERVAL '1 minute') AS is_recent FROM players p JOIN player_activity pa ON p.uuid = pa.player_uuid WHERE p.name ILIKE 'player_name_here' ORDER BY pa.snapshot_ts DESC LIMIT 1"
+  If 'is_online' is true AND 'is_recent' is true, they are ONLINE. Otherwise, they are OFFLINE.
+
+- HOW TO GET A PLAYER'S TOWN/NATION/BALANCE/DATA (USE EXACTLY THIS QUERY):
+  "SELECT ps.data FROM players p JOIN player_snapshots ps ON p.uuid = ps.player_uuid WHERE p.name ILIKE 'player_name_here' ORDER BY ps.snapshot_ts DESC LIMIT 1"
+
+- HOW TO GET A TOWN'S DATA (USE EXACTLY THIS QUERY):
+  "SELECT ts.data FROM towns t JOIN town_snapshots ts ON t.uuid = ts.town_uuid WHERE t.name ILIKE 'town_name_here' ORDER BY ts.snapshot_ts DESC LIMIT 1"
+
+- HOW TO GET A NATION'S DATA (USE EXACTLY THIS QUERY):
+  "SELECT ns.data FROM nations n JOIN nation_snapshots ns ON n.uuid = ns.nation_uuid WHERE n.name ILIKE 'nation_name_here' ORDER BY ns.snapshot_ts DESC LIMIT 1"
 
 Agentic Transparency & Quota Guardrails:
 - All "[thought:...]" and "[query:...]" tags MUST be placed contiguously at the VERY BEGINNING of your response. NEVER intersperse regular text between these tags. ONLY output regular text to the user once you are completely finished with all thoughts and queries.
@@ -144,7 +141,7 @@ export async function POST(req: NextRequest) {
             history: history,
             config: {
                 systemInstruction: SYSTEM_PROMPT,
-                tools: [{ functionDeclarations: [executeSqlTool, queryAndAnalyzeTool, fetchOnlineApiTool] }],
+                tools: [{ functionDeclarations: [executeSqlTool, queryAndAnalyzeTool] }],
                 temperature: 1,
                 safetySettings: [
                     { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
@@ -276,26 +273,6 @@ ${dbResultStr}`
                                 functionResponse: {
                                     name: 'query_and_analyze',
                                     response: { result: subagentResponseStr }
-                                }
-                            }];
-                        } else if (toolCall.name === 'fetch_online_api') {
-                            let apiResultStr = "";
-                            try {
-                                const apiRes = await fetch("https://api.earthmc.net/v3/aurora/online");
-                                if (!apiRes.ok) {
-                                    apiResultStr = `API Error: Status ${apiRes.status}`;
-                                } else {
-                                    const data = await apiRes.json();
-                                    apiResultStr = JSON.stringify(data);
-                                }
-                            } catch (e: any) {
-                                apiResultStr = `API Fetch Error: ${e.message}`;
-                            }
-
-                            nextMessage = [{
-                                functionResponse: {
-                                    name: 'fetch_online_api',
-                                    response: { result: apiResultStr }
                                 }
                             }];
                         }
