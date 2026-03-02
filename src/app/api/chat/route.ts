@@ -58,27 +58,26 @@ export async function POST(req: NextRequest) {
             parts: [{ text: msg.content || msg.parts?.[0]?.text || '' }]
         }));
 
-        const responseStream = await ai.models.generateContentStream({
+        const history = formattedMessages.slice(0, -1);
+        const currentMessageText = formattedMessages[formattedMessages.length - 1].parts[0].text;
+
+        const chat = ai.chats.create({
             model: 'gemini-3-flash-preview',
-            contents: formattedMessages,
+            history: history,
             config: {
                 tools: [{ functionDeclarations: [executeSqlTool] }],
                 temperature: 0.2
             }
         });
 
+        const responseStream = await chat.sendMessageStream(currentMessageText);
+
         // Create a ReadableStream to stream the response chunks back directly to the client
         const stream = new ReadableStream({
             async start(controller) {
                 let toolCall = null;
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const modelParts: any[] = [];
-
                 try {
                     for await (const chunk of responseStream) {
-                        if (chunk.candidates?.[0]?.content?.parts) {
-                            modelParts.push(...chunk.candidates[0].content.parts);
-                        }
                         if (chunk.functionCalls && chunk.functionCalls.length > 0) {
                             toolCall = chunk.functionCalls[0];
                         }
@@ -105,28 +104,13 @@ export async function POST(req: NextRequest) {
                             const dbRes = await pool.query(query);
                             const dbResultStr = JSON.stringify(dbRes.rows, null, 2);
 
-                            // Send another request to Gemini with the exact model parts
-                            const followupContents = [
-                                ...formattedMessages,
-                                {
-                                    role: 'model',
-                                    parts: modelParts
-                                },
-                                {
-                                    role: 'user',
-                                    parts: [{
-                                        functionResponse: {
-                                            name: 'execute_sql',
-                                            response: { result: dbResultStr }
-                                        }
-                                    }]
-                                }
-                            ];
-
-                            const finalStream = await ai.models.generateContentStream({
-                                model: 'gemini-3-flash-preview',
-                                contents: followupContents,
-                                config: { temperature: 0.2 }
+                            const finalStream = await chat.sendMessageStream({
+                                message: [{
+                                    functionResponse: {
+                                        name: 'execute_sql',
+                                        response: { result: dbResultStr }
+                                    }
+                                }]
                             });
 
                             for await (const finalChunk of finalStream) {

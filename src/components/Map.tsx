@@ -489,8 +489,8 @@ export default function EarthMap({ activeTab }: { activeTab?: string }) {
                     </div>
                     <button
                         onClick={() => setIsChatOpen(!isChatOpen)}
-                        className={`w-8 h-8 rounded-full transition-colors flex items-center justify-center group shrink-0 ${isChatOpen ? 'bg-blue-500/80 hover:bg-blue-400' : 'bg-white/10 hover:bg-white/20'}`}
-                        title="Vertex AI Assistant"
+                        className={`w-8 h-8 rounded-full transition-colors flex items-center justify-center group shrink-0 ${isChatOpen ? 'bg-earthmc-green/80 hover:bg-earthmc-green' : 'bg-white/10 hover:bg-white/20'}`}
+                        title="EarthMC Assistant"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white group-hover:scale-110 transition-transform"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
                     </button>
