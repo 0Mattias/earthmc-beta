@@ -42,6 +42,17 @@ const queryAndAnalyzeTool = {
     parameters: queryAndAnalyzeSchema
 };
 
+const fetchOnlineApiSchema: Schema = {
+    type: Type.OBJECT,
+    properties: {}, // No parameters required
+};
+
+const fetchOnlineApiTool = {
+    name: "fetch_online_api",
+    description: "Fetches the real-time currently online player list directly from the EarthMC API (https://api.earthmc.net/v3/aurora/online). Use this to definitively verify if a player is online or to get the true real-time online count.",
+    parameters: fetchOnlineApiSchema
+};
+
 const SYSTEM_PROMPT = `You are a helpful database query assistant for the EarthMC Minecraft server tracker.
 You are tasked with answering user questions about players, towns, nations, and their real-time or historical data.
 
@@ -76,7 +87,8 @@ SQL Structure Rules (CRITICAL FOR ACCURATE DATA):
 - NEVER query physical partition storage buckets directly (e.g. 'player_activity_2026...'). Only query 'player_activity'.
 - HOW TO CHECK A PLAYER'S CURRENT ONLINE STATUS AND LOCATION (YOU MUST USE EXACTLY THIS QUERY, DO NOT INVENT ONE):
   "SELECT x, y, z, world, snapshot_ts, is_online FROM player_activity WHERE player_name ILIKE 'player_name_here' ORDER BY snapshot_ts DESC LIMIT 1"
-  Then, evaluate the exact result: If 'is_online' is TRUE AND the 'snapshot_ts' is within the last 5 minutes of NOW(), the player is ONLINE. If 'is_online' is false OR 'snapshot_ts' is older than 5 minutes, they are OFFLINE. DO NOT USE ANY OTHER METHOD TO DETERMINE ONLINE STATUS.
+  Then, evaluate the exact result: If 'is_online' is TRUE AND the 'snapshot_ts' is within the last 1 minute of NOW(), the player is ONLINE in the tracker.
+  If 'is_online' is false OR 'snapshot_ts' is older than 1 minute, the tracker thinks they are OFFLINE. If you are unsure or want to be absolutely certain they are online, use the 'fetch_online_api' tool as a definitive fallback. DO NOT USE ANY OTHER METHOD TO DETERMINE ONLINE STATUS.
 - HOW TO GET A PLAYER'S TOWN/NATION/BALANCE:
   "SELECT data FROM player_snapshots WHERE player_name ILIKE 'player_name_here' ORDER BY snapshot_ts DESC LIMIT 1"
 - ALWAYS append "ORDER BY snapshot_ts DESC LIMIT 1" when asking about the historical/current state of towns or nations, otherwise you will fetch thousands of outdated logs.
@@ -132,7 +144,7 @@ export async function POST(req: NextRequest) {
             history: history,
             config: {
                 systemInstruction: SYSTEM_PROMPT,
-                tools: [{ functionDeclarations: [executeSqlTool, queryAndAnalyzeTool] }],
+                tools: [{ functionDeclarations: [executeSqlTool, queryAndAnalyzeTool, fetchOnlineApiTool] }],
                 temperature: 1,
                 safetySettings: [
                     { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
@@ -264,6 +276,26 @@ ${dbResultStr}`
                                 functionResponse: {
                                     name: 'query_and_analyze',
                                     response: { result: subagentResponseStr }
+                                }
+                            }];
+                        } else if (toolCall.name === 'fetch_online_api') {
+                            let apiResultStr = "";
+                            try {
+                                const apiRes = await fetch("https://api.earthmc.net/v3/aurora/online");
+                                if (!apiRes.ok) {
+                                    apiResultStr = `API Error: Status ${apiRes.status}`;
+                                } else {
+                                    const data = await apiRes.json();
+                                    apiResultStr = JSON.stringify(data);
+                                }
+                            } catch (e: any) {
+                                apiResultStr = `API Fetch Error: ${e.message}`;
+                            }
+
+                            nextMessage = [{
+                                functionResponse: {
+                                    name: 'fetch_online_api',
+                                    response: { result: apiResultStr }
                                 }
                             }];
                         }
