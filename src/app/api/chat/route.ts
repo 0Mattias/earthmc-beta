@@ -126,10 +126,27 @@ export async function POST(req: NextRequest) {
         const geminiModel = model === 'smart' ? 'gemini-3.1-pro-preview' : 'gemini-3-flash-preview';
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const formattedMessages = messages.map((msg: any) => ({
-            role: msg.role === 'assistant' ? 'model' : msg.role,
-            parts: [{ text: msg.content || msg.parts?.[0]?.text || '' }]
-        }));
+        const formattedMessages = messages.map((msg: any) => {
+            let textContent = msg.content || msg.parts?.[0]?.text || '';
+
+            if (msg.role === 'assistant') {
+                // Sanitize history so the model doesn't hallucinate from reading previous injected error markers
+                if (textContent.includes('[The model returned an empty response')) textContent = "I experienced an internal error.";
+                if (textContent.includes('[My safety filters prevented')) textContent = "I cannot fulfill this request due to safety filters.";
+                if (textContent.includes('[Chat API Error:')) textContent = "I experienced an API error.";
+                if (textContent.includes('[Error:')) textContent = "I experienced a connection error.";
+
+                // Scrub raw internal tool syntax if it leaked in previous turns
+                if (textContent.includes('getResponse:') || textContent.includes('<ctrl')) {
+                    textContent = "I experienced an internal formatting error.";
+                }
+            }
+
+            return {
+                role: msg.role === 'assistant' ? 'model' : msg.role,
+                parts: [{ text: textContent }]
+            };
+        });
 
         if (formattedMessages.length === 0) {
             return new Response("No messages provided", { status: 400 });
@@ -144,7 +161,7 @@ export async function POST(req: NextRequest) {
             config: {
                 systemInstruction: SYSTEM_PROMPT,
                 tools: [{ functionDeclarations: [executeSqlTool, queryAndAnalyzeTool] }],
-                temperature: 1,
+                temperature: 0.2,
                 safetySettings: [
                     { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
                     { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
@@ -192,8 +209,13 @@ export async function POST(req: NextRequest) {
                             }
 
                             if (chunk.text && chunk.text.trim()) {
+                                const textPart = chunk.text;
+                                // Suppress streaming of hallucinated internal tool syntax
+                                if (textPart.includes('getResponse:') || textPart.includes('<ctrl') || textPart.includes('{"functionCall"')) {
+                                    continue;
+                                }
                                 generatedSomeText = true;
-                                controller.enqueue(new TextEncoder().encode(chunk.text));
+                                controller.enqueue(new TextEncoder().encode(textPart));
                             }
                         }
 
