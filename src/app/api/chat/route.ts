@@ -21,6 +21,27 @@ const executeSqlTool = {
     parameters: executeSqlSchema
 };
 
+const queryAndAnalyzeSchema: Schema = {
+    type: Type.OBJECT,
+    properties: {
+        query: {
+            type: Type.STRING,
+            description: "A secure, read-only PostgreSQL SELECT query to execute against the EarthMC tracker database. Use this for queries that return massive amounts of rows."
+        },
+        analysis_goal: {
+            type: Type.STRING,
+            description: "A highly detailed prompt instructing the Subagent on exactly what data you are looking for and how it should summarize the raw JSON."
+        }
+    },
+    required: ["query", "analysis_goal"]
+};
+
+const queryAndAnalyzeTool = {
+    name: "query_and_analyze",
+    description: "Executes a large SELECT query and silently passes the raw JSON results to a background Gemini Subagent. The Subagent deeply analyzes the rows based on your `analysis_goal` and returns only a concise text summary back to you. Use this for big data aggregations, large player listings, or whenever a query might return hundreds of rows that would clutter the main chat.",
+    parameters: queryAndAnalyzeSchema
+};
+
 const SYSTEM_PROMPT = `You are a helpful database query assistant for the EarthMC Minecraft server tracker.
 You are tasked with answering user questions about players, towns, nations, and their real-time or historical data.
 
@@ -48,12 +69,18 @@ To make the chat UI interactive, YOU MUST use the following special tags in your
 5. If you talk about a player and you know their UUID from the activity tables, ALWAYS append a draw path action button at the end of your message: \`[action:path:UUID:PlayerName]\`
 
 Notes:
-- Always use the execute_sql tool to retrieve data to answer the user's question. 
+- Always use the tools provided to retrieve data to answer the user's question. 
 - Ensure your SQL queries begin with SELECT or WITH.
-- When the tool returns JSON database results, you MUST interpret those results and create a helpful, human-readable response based on them. Do not remain silent when data is returned.
-- If necessary, make multiple sequential tool calls to gather all required information. Handle database errors gracefully by adjusting your query to fix issues like syntax errors.
 - To find a player's coordinates, query the player_activity table by ordering by snapshot_ts DESC with LIMIT 1. Example: SELECT player_uuid, x, y, z, world, snapshot_ts, is_online FROM player_activity WHERE player_name ILIKE 'xyz' ORDER BY snapshot_ts DESC LIMIT 1.
 - IMPORTANT: If a player's \`is_online\` status is true, report that they are "currently online at coordinates X, Y, Z". Do NOT say they were "last recorded as being online" in the past tense if they are currently active. Only say "last seen" or "last recorded" if \`is_online\` is strictly false.
+
+SQL Structure Rules (CRITICAL FOR ACCURATE DATA):
+- ALWAYS append \`ORDER BY snapshot_ts DESC LIMIT 1\` when asking about the *current* state of towns or nations, otherwise you will fetch thousands of outdated historical logs.
+  - Example: \`SELECT data->'stats'->>'numResidents' as residents FROM town_snapshots WHERE town_name = 'xyz' ORDER BY snapshot_ts DESC LIMIT 1\`
+- To draw breadcrumb paths, query \`player_activity\`: \`SELECT snapshot_ts, x, y, z, world FROM player_activity WHERE player_name = 'xyz' AND snapshot_ts >= NOW() - INTERVAL '1 hour' ORDER BY snapshot_ts ASC\`
+- NEVER query partitioned activity tables directly (e.g. \`player_activity_2026...\`). Only query \`player_activity\`.
+- Use the \`query_and_analyze\` tool for queries that return large datasets (>50 rows). The subagent will process it and give you the answer cleanly without maxing out your internal context.
+
 - You can query up to 10 times in a row. If you hit an error, read it, fix your query, and try again.
 - The UI handles the presentation, so keep your responses concise, helpful, and derived directly from the data.
 - STRICT DOMAIN RESTRICTION: You must only answer questions related to EarthMC, Minecraft, or the data in the database. Refuse to answer general questions, help with code, roleplay, or discuss unrelated topics.
@@ -79,7 +106,7 @@ export async function POST(req: NextRequest) {
             history: history,
             config: {
                 systemInstruction: SYSTEM_PROMPT,
-                tools: [{ functionDeclarations: [executeSqlTool] }],
+                tools: [{ functionDeclarations: [executeSqlTool, queryAndAnalyzeTool] }],
                 temperature: 0.2,
                 safetySettings: [
                     { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
@@ -161,11 +188,56 @@ export async function POST(req: NextRequest) {
                                 }
                             }
 
-                            // Just feed the tool response directly back to the chat instance; it retains history.
                             nextMessage = [{
                                 functionResponse: {
                                     name: 'execute_sql',
                                     response: { result: dbResultStr }
+                                }
+                            }];
+                        } else if (toolCall.name === 'query_and_analyze') {
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            const args = toolCall.args as any;
+                            const query = args.query ? args.query.trim() : "";
+                            const analysisGoal = args.analysis_goal || "";
+
+                            let subagentResponseStr = "";
+                            if (!query.toUpperCase().startsWith('SELECT') && !query.toUpperCase().startsWith('WITH')) {
+                                subagentResponseStr = "Error: Only SELECT queries are allowed.";
+                            } else {
+                                try {
+                                    const dbRes = await pool.query(query);
+                                    let dbResultStr = JSON.stringify(dbRes.rows, null, 2);
+
+                                    // Truncate massively gigantic JSON so the subagent doesn't crash on input limit
+                                    if (dbResultStr.length > 500000) {
+                                        dbResultStr = dbResultStr.substring(0, 500000) + "\n\n...[TRUNCATED DUE TO EXTREME SIZE]...";
+                                    }
+
+                                    // Spin up a one-shot subagent to read the JSON
+                                    const subagent = ai.models.generateContent({
+                                        model: 'gemini-3-flash-preview',
+                                        contents: `You are a strict data-analyst subagent for the EarthMC Agent. You have been handed raw JSON data from the PostgreSQL tracker. Look at the data and fulfill the analysis_goal exactly as requested. Keep your answer extremely concise, entirely factual, and do not use markdown formatting like asterisks.
+                                        
+Analysis Goal: ${analysisGoal}
+
+Row Count: ${dbRes.rows.length}
+Raw Data:
+${dbResultStr}`
+                                    });
+
+                                    const response = await subagent;
+                                    subagentResponseStr = response.text || "Subagent failed to generate an analysis.";
+
+                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                } catch (dbError: any) {
+                                    subagentResponseStr = `Subagent/Database Error: ${dbError.message}`;
+                                }
+                            }
+
+                            nextMessage = [{
+                                functionResponse: {
+                                    name: 'query_and_analyze',
+                                    response: { result: subagentResponseStr }
                                 }
                             }];
                         }
