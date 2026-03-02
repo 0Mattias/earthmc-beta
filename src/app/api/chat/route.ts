@@ -38,8 +38,11 @@ Notes:
 - Always use the execute_sql tool to retrieve data to answer the user's question. 
 - Ensure your SQL queries begin with SELECT or WITH.
 - When the tool returns JSON database results, you MUST interpret those results and create a helpful, human-readable response based on them. Do not remain silent when data is returned.
-- You are ONLY ALLOWED to make ONE tool call per query. You MUST formulate your final answer immediately after receiving the first database result. Do NOT attempt to make a second tool call.
+- If necessary, make multiple sequential tool calls to gather all required information. Handle database errors gracefully by adjusting your query to fix issues like syntax errors.
+- To find a player's last known coordinates (especially if they are offline), query the player_activity table by ordering by snapshot_ts DESC with LIMIT 1. Example: SELECT x, y, z, world, snapshot_ts FROM player_activity WHERE player_name ILIKE 'xyz' ORDER BY snapshot_ts DESC LIMIT 1.
 - The UI handles the presentation, so keep your responses concise, helpful, and derived directly from the data.
+- STRICT DOMAIN RESTRICTION: You must only answer questions related to EarthMC, Minecraft, or the data in the database. Refuse to answer general questions, help with code, roleplay, or discuss unrelated topics.
+- STRICT FORMATTING: DO NOT use bolding (**), asterisks (*), or emojis under any circumstances. Format your text plainly.
 `;
 
 export async function POST(req: NextRequest) {
@@ -72,100 +75,101 @@ export async function POST(req: NextRequest) {
             }
         });
 
-        const responseStream = await chat.sendMessageStream({ message: currentMessageText });
-
-        // Create a ReadableStream to stream the response chunks back directly to the client
         const stream = new ReadableStream({
             async start(controller) {
-                let toolCall = null;
                 try {
-                    let hasText = false;
-                    let finishReason = '';
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    let nextMessage: any = { message: currentMessageText };
+                    const maxIter = 5;
+                    let iter = 0;
+                    let generatedSomeText = false;
+                    let lastToolCall = null;
 
-                    for await (const chunk of responseStream) {
-                        if (chunk.candidates?.[0]?.finishReason) {
-                            finishReason = chunk.candidates[0].finishReason;
-                        }
-
-                        if (chunk.functionCalls && chunk.functionCalls.length > 0) {
-                            toolCall = chunk.functionCalls[0];
-                        }
-                        if (chunk.text && chunk.text.trim()) {
-                            hasText = true;
-                            controller.enqueue(new TextEncoder().encode(chunk.text));
-                        }
-                    }
-
-                    if (!toolCall && !hasText) {
-                        if (finishReason === 'SAFETY') {
-                            controller.enqueue(new TextEncoder().encode("\n\n*My safety filters prevented me from answering this query.*"));
-                        } else {
-                            controller.enqueue(new TextEncoder().encode("\n\n*[The model returned an empty response. Wait a moment and try again.]*"));
-                        }
-                    }
-
-                    if (toolCall && toolCall.name === 'execute_sql') {
-
-                        // Execute the SQL
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        const args = toolCall.args as any;
-                        const query = args.query.trim();
-
-                        if (!query.toUpperCase().startsWith('SELECT') && !query.toUpperCase().startsWith('WITH')) {
-                            const errorMsg = "Error: Only SELECT queries are allowed for safety.";
-                            controller.enqueue(new TextEncoder().encode(`\\n\\n[Query Error: ${errorMsg}]`));
-                            controller.close();
-                            return;
-                        }
-
+                    while (iter < maxIter) {
+                        iter++;
+                        let responseStream;
                         try {
-                            const dbRes = await pool.query(query);
-                            const dbResultStr = JSON.stringify(dbRes.rows, null, 2);
+                            responseStream = await chat.sendMessageStream(nextMessage);
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        } catch (e: any) {
+                            controller.enqueue(new TextEncoder().encode(`\n\n[Chat API Error: ${e.message}]`));
+                            break;
+                        }
 
-                            const finalStream = await chat.sendMessageStream({
+                        let toolCall = null;
+                        let finishReason = '';
+
+                        for await (const chunk of responseStream) {
+                            if (chunk.candidates?.[0]?.finishReason) {
+                                finishReason = chunk.candidates[0].finishReason;
+                            }
+
+                            if (chunk.functionCalls && chunk.functionCalls.length > 0) {
+                                toolCall = chunk.functionCalls[0];
+                            }
+                            if (chunk.text && chunk.text.trim()) {
+                                generatedSomeText = true;
+                                controller.enqueue(new TextEncoder().encode(chunk.text));
+                            }
+                        }
+
+                        lastToolCall = toolCall;
+
+                        if (!toolCall) {
+                            if (!generatedSomeText) {
+                                if (finishReason === 'SAFETY') {
+                                    controller.enqueue(new TextEncoder().encode("\n\n[My safety filters prevented me from answering this query.]"));
+                                } else {
+                                    controller.enqueue(new TextEncoder().encode("\n\n[The model returned an empty response. Wait a moment and try again.]"));
+                                }
+                            }
+                            break;
+                        }
+
+                        if (toolCall.name === 'execute_sql') {
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            const args = toolCall.args as any;
+                            const query = args.query ? args.query.trim() : "";
+
+                            if (!query.toUpperCase().startsWith('SELECT') && !query.toUpperCase().startsWith('WITH')) {
+                                nextMessage = {
+                                    message: [{
+                                        functionResponse: {
+                                            name: 'execute_sql',
+                                            response: { result: "Error: Only SELECT queries are allowed." }
+                                        }
+                                    }]
+                                };
+                                continue;
+                            }
+
+                            let dbResultStr = "";
+                            try {
+                                const dbRes = await pool.query(query);
+                                dbResultStr = JSON.stringify(dbRes.rows, null, 2);
+                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            } catch (dbError: any) {
+                                dbResultStr = `Database Error: ${dbError.message}`;
+                            }
+
+                            nextMessage = {
                                 message: [{
                                     functionResponse: {
                                         name: 'execute_sql',
                                         response: { result: dbResultStr }
                                     }
                                 }]
-                            });
-
-                            let hasFinalText = false;
-                            let finalFinishReason = '';
-
-                            for await (const finalChunk of finalStream) {
-                                if (finalChunk.candidates?.[0]?.finishReason) {
-                                    finalFinishReason = finalChunk.candidates[0].finishReason;
-                                }
-
-                                if (finalChunk.functionCalls && finalChunk.functionCalls.length > 0) {
-                                    controller.enqueue(new TextEncoder().encode(`\n\n*[The model attempted to make a sequential database query, which is not supported in this chat. Please ask a more specific question.]*`));
-                                    hasFinalText = true;
-                                }
-
-                                if (finalChunk.text) {
-                                    hasFinalText = true;
-                                    controller.enqueue(new TextEncoder().encode(finalChunk.text));
-                                }
-                            }
-
-                            if (!hasFinalText) {
-                                if (finalFinishReason === 'SAFETY') {
-                                    controller.enqueue(new TextEncoder().encode("\n\n*My safety filters prevented me from displaying these records.*"));
-                                } else {
-                                    // Sometimes large queries make the model output empty strings.
-                                    controller.enqueue(new TextEncoder().encode(`\n\n*[The query returned data, but I could not formulate a response. Usually this happens if the result is too large. Length: ${dbResultStr.length} chars]*`));
-                                }
-                            }
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        } catch (dbError: any) {
-                            controller.enqueue(new TextEncoder().encode(`\\n\\n[Database Error executing query: ${dbError.message}]`));
+                            };
                         }
                     }
+
+                    if (iter >= maxIter && lastToolCall) {
+                        controller.enqueue(new TextEncoder().encode("\n\n[Max internal query sequence reached.]"));
+                    }
+
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 } catch (e: any) {
-                    controller.enqueue(new TextEncoder().encode(`\\n\\n[Error: ${e.message}]`));
+                    controller.enqueue(new TextEncoder().encode(`\n\n[Error: ${e.message}]`));
                 } finally {
                     controller.close();
                 }
