@@ -38,6 +38,7 @@ Notes:
 - Always use the execute_sql tool to retrieve data to answer the user's question. 
 - Ensure your SQL queries begin with SELECT or WITH.
 - When the tool returns JSON database results, you MUST interpret those results and create a helpful, human-readable response based on them. Do not remain silent when data is returned.
+- You are ONLY ALLOWED to make ONE tool call per query. You MUST formulate your final answer immediately after receiving the first database result. Do NOT attempt to make a second tool call.
 - The UI handles the presentation, so keep your responses concise, helpful, and derived directly from the data.
 `;
 
@@ -46,15 +47,8 @@ export async function POST(req: NextRequest) {
         const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
         const { messages } = await req.json();
 
-        // Add system prompt to the beginning of the messages
-        const fullMessages = [
-            { role: 'user', parts: [{ text: SYSTEM_PROMPT }] },
-            { role: 'model', parts: [{ text: "Understood. I await your queries." }] },
-            ...messages
-        ];
-
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const formattedMessages = fullMessages.map((msg: any) => ({
+        const formattedMessages = messages.map((msg: any) => ({
             role: msg.role === 'assistant' ? 'model' : msg.role,
             parts: [{ text: msg.content || msg.parts?.[0]?.text || '' }]
         }));
@@ -66,6 +60,7 @@ export async function POST(req: NextRequest) {
             model: 'gemini-3-flash-preview',
             history: history,
             config: {
+                systemInstruction: SYSTEM_PROMPT,
                 tools: [{ functionDeclarations: [executeSqlTool] }],
                 temperature: 0.2,
                 safetySettings: [
@@ -142,6 +137,11 @@ export async function POST(req: NextRequest) {
                             for await (const finalChunk of finalStream) {
                                 if (finalChunk.candidates?.[0]?.finishReason) {
                                     finalFinishReason = finalChunk.candidates[0].finishReason;
+                                }
+
+                                if (finalChunk.functionCalls && finalChunk.functionCalls.length > 0) {
+                                    controller.enqueue(new TextEncoder().encode(`\n\n*[The model attempted to make a sequential database query, which is not supported in this chat. Please ask a more specific question.]*`));
+                                    hasFinalText = true;
                                 }
 
                                 if (finalChunk.text) {
