@@ -78,10 +78,16 @@ SQL Structure Rules (CRITICAL FOR ACCURATE DATA):
 - ALWAYS append \`ORDER BY snapshot_ts DESC LIMIT 1\` when asking about the *current* state of towns or nations, otherwise you will fetch thousands of outdated historical logs.
   - Example: \`SELECT data->'stats'->>'numResidents' as residents FROM town_snapshots WHERE town_name = 'xyz' ORDER BY snapshot_ts DESC LIMIT 1\`
 - To draw breadcrumb paths, query \`player_activity\`: \`SELECT snapshot_ts, x, y, z, world FROM player_activity WHERE player_name = 'xyz' AND snapshot_ts >= NOW() - INTERVAL '1 hour' ORDER BY snapshot_ts ASC\`
+- To get the true live count of online players, NEVER use \`server_snapshots\`. Instead, query the 3-second activity loop: \`SELECT COUNT(DISTINCT player_uuid) FROM player_activity WHERE snapshot_ts >= NOW() - INTERVAL '15 seconds' AND is_online = true;\`
 - NEVER query partitioned activity tables directly (e.g. \`player_activity_2026...\`). Only query \`player_activity\`.
 - Use the \`query_and_analyze\` tool for queries that return large datasets (>50 rows). The subagent will process it and give you the answer cleanly without maxing out your internal context.
 
-- You can query up to 10 times in a row. If you hit an error, read it, fix your query, and try again.
+Agentic Transparency Rules:
+- Before executing ANY databases tools, you MUST explicitly "think out loud" in a conversational sentence.
+- Explain what you are going to do to the user so they are not left waiting silently. 
+- Examples: "Let me check the database for current online players...", "I'm looking up the demographic stats for that nation now...", "Querying the activity logs to find their last known coordinates..."
+
+- You can query up to 20 times in a row. If you hit an error, read it, fix your query, and try again.
 - The UI handles the presentation, so keep your responses concise, helpful, and derived directly from the data.
 - STRICT DOMAIN RESTRICTION: You must only answer questions related to EarthMC, Minecraft, or the data in the database. Refuse to answer general questions, help with code, roleplay, or discuss unrelated topics.
 - STRICT FORMATTING: DO NOT use bolding (**), asterisks (*), or emojis under any circumstances. Format your text plainly.
@@ -123,7 +129,7 @@ export async function POST(req: NextRequest) {
                     // Initialize the conversation data
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     let nextMessage: any = currentMessageText;
-                    const maxIter = 10;
+                    const maxIter = 20;
                     let iter = 0;
                     let generatedSomeText = false;
                     let lastToolCall = null;
