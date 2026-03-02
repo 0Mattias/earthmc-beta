@@ -128,35 +128,35 @@ export default function ChatWindow({ onClose }: { onClose: () => void }) {
                     {groupedParts.map((group, groupIdx) => {
                         if (group.type === 'group') {
                             return (
-                                <details key={groupIdx} open className="group my-1.5 bg-black/40 border border-white/5 rounded-lg overflow-hidden w-full text-[11px] shadow-sm">
-                                    <summary className="px-2.5 py-1.5 flex items-center justify-between text-white/40 hover:text-white/70 select-none outline-none font-medium cursor-pointer transition-colors">
-                                        <div className="flex items-center gap-1.5">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-earthmc-green/60"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" /></svg>
+                                <details key={groupIdx} className="group my-2 bg-black/20 border border-white/[0.03] rounded-xl overflow-hidden w-full text-xs shadow-sm">
+                                    <summary className="px-3 py-2 flex items-center justify-between text-white/50 hover:text-white/70 hover:bg-white/[0.02] select-none outline-none font-medium cursor-pointer transition-colors">
+                                        <div className="flex items-center gap-2 text-[11.5px]">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-earthmc-green/60"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" /></svg>
                                             <span className="tracking-wide">Agent Thinking</span>
                                         </div>
                                         <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-40 group-open:rotate-180 transition-transform duration-200"><polyline points="6 9 12 15 18 9"></polyline></svg>
                                     </summary>
-                                    <div className="px-2.5 pb-2.5 pt-1 text-white/50 leading-relaxed border-t border-white/5 bg-black/20 italic flex flex-col gap-1.5 cursor-default">
+                                    <div className="px-3 pb-3 pt-1 text-white/60 leading-relaxed border-t border-white/[0.03] bg-black/10 italic flex flex-col gap-2 cursor-text">
                                         {group.items.map((item, itemIdx) => {
                                             if (item.startsWith('[query:')) {
                                                 return (
-                                                    <div key={itemIdx} className="bg-blue-500/5 border border-blue-500/10 rounded-md p-2">
-                                                        <div className="flex items-center gap-1.5 mb-1 text-blue-400/80 font-semibold not-italic">
+                                                    <div key={itemIdx} className="bg-blue-500/5 border border-blue-500/10 rounded-lg p-2.5">
+                                                        <div className="flex items-center gap-1.5 mb-1.5 text-blue-400 font-semibold not-italic text-[11px]">
                                                             <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>
                                                             <span>Querying Database</span>
                                                         </div>
-                                                        <div className="text-white/60 ml-0.5">{item.slice(7, -1)}</div>
+                                                        <div className="text-white/60 ml-0.5 text-[11.5px] leading-relaxed">{item.slice(7, -1)}</div>
                                                     </div>
                                                 );
                                             }
                                             if (item.startsWith('[thought:')) {
                                                 return (
-                                                    <div key={itemIdx} className="bg-white/5 rounded-md p-1.5 px-2">
-                                                        <div className="flex items-center gap-1.5 mb-1 text-white/30 font-semibold not-italic">
+                                                    <div key={itemIdx} className="bg-white/5 rounded-lg p-2.5">
+                                                        <div className="flex items-center gap-1.5 mb-1.5 text-white/40 font-semibold not-italic text-[11px]">
                                                             <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
                                                             <span>Agent Thought</span>
                                                         </div>
-                                                        <div className="text-white/40 ml-0.5">{item.slice(9, -1)}</div>
+                                                        <div className="text-white/50 ml-0.5 text-[11.5px] leading-relaxed">{item.slice(9, -1)}</div>
                                                     </div>
                                                 );
                                             }
@@ -233,7 +233,7 @@ export default function ChatWindow({ onClose }: { onClose: () => void }) {
                     <div className="w-8 h-8 rounded-full border border-earthmc-green/30 bg-earthmc-green/10 flex items-center justify-center text-emerald-400 shadow-[0_0_10px_rgba(74,222,128,0.1)]">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" /></svg>
                     </div>
-                    <span className="font-medium text-white tracking-wide text-sm">EarthMC Agent</span>
+                    <span className="font-medium text-white tracking-wide text-sm">Agent</span>
                 </div>
                 <div className="flex items-center gap-1">
                     <button
@@ -309,7 +309,7 @@ export default function ChatWindow({ onClose }: { onClose: () => void }) {
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         disabled={isThinking}
-                        placeholder="Message EarthMC Agent..."
+                        placeholder="Message Agent..."
                         className="flex-1 bg-white/5 border border-white/10 rounded-full px-4 py-2 text-sm text-white focus:outline-none focus:border-white/20 focus:bg-white/10 transition-all placeholder:text-white/30 disabled:opacity-50"
                     />
                     <button
