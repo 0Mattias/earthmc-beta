@@ -41,8 +41,8 @@ export default function ChatWindow({ isOpen, onClose }: { isOpen: boolean, onClo
             "Hunting 4KOS...",
             "Hunting Veyronity...",
             "Hunting 36Hoi...",
-            "Hunting sometexan",
-            "Hunting GrayMold9",
+            "Hunting sometexan...",
+            "Hunting GrayMold9...",
             "Cleaning my enderchest...",
             "This is taking a while..."
         ];

@@ -85,10 +85,10 @@ To make the chat UI interactive, YOU MUST use the following special tags in your
 SQL Structure Rules (CRITICAL FOR ACCURATE DATA):
 - ALWAYS use 'ILIKE' instead of '=' when searching by player, town, or nation names to ensure case-insensitivity.
 - NEVER query physical partition storage buckets directly (e.g. 'player_activity_2026...'). Only query 'player_activity'.
-- HOW TO CHECK A PLAYER'S CURRENT ONLINE STATUS:
-  YOU MUST STRICTLY use the 'fetch_online_api' tool to check if the player is currently online. This is the ONLY source of truth for online status.
-- HOW TO CHECK A PLAYER'S LAST KNOWN COORDINATES:
-  "SELECT x, y, z, world, snapshot_ts FROM player_activity WHERE player_name ILIKE 'player_name_here' ORDER BY snapshot_ts DESC LIMIT 1"
+- HOW TO CHECK A PLAYER'S CURRENT ONLINE STATUS AND LOCATION (YOU MUST USE EXACTLY THIS QUERY, DO NOT INVENT ONE):
+  "SELECT x, y, z, world, snapshot_ts, is_online FROM player_activity WHERE player_name ILIKE 'player_name_here' ORDER BY snapshot_ts DESC LIMIT 1"
+  Then, evaluate the exact result: If 'is_online' is TRUE AND the 'snapshot_ts' is within the last 1 minute of NOW(), the player is ONLINE in the tracker.
+  If 'is_online' is false OR 'snapshot_ts' is older than 1 minute, the tracker thinks they are OFFLINE. DO NOT rely only on 'is_online', the timestamp is critical.
 - HOW TO GET A PLAYER'S TOWN/NATION/BALANCE:
   "SELECT data FROM player_snapshots WHERE player_name ILIKE 'player_name_here' ORDER BY snapshot_ts DESC LIMIT 1"
 - ALWAYS append "ORDER BY snapshot_ts DESC LIMIT 1" when asking about the historical/current state of towns or nations, otherwise you will fetch thousands of outdated logs.
