@@ -228,9 +228,6 @@ export default function ChatWindow({ isOpen, onClose }: { isOpen: boolean, onClo
                 const part = group.content;
                 if (!part) return null;
 
-                // Hide the actual response text if the agent is still thinking (and we are the assistant)
-                if (role === 'assistant' && isThinking && isLastMessage) return null;
-
                 const renderedContent: React.ReactNode[] = [];
 
                 const lines = part.split('\n');

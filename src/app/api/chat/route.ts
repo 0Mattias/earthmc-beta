@@ -208,7 +208,7 @@ export async function POST(req: NextRequest) {
                                 toolCall = chunk.candidates[0].content.parts[0].functionCall;
                             }
 
-                            if (chunk.text && chunk.text.trim()) {
+                            if (chunk.text) {
                                 const textPart = chunk.text;
                                 // Suppress streaming of hallucinated internal tool syntax
                                 if (textPart.includes('getResponse:') || textPart.includes('<ctrl') || textPart.includes('{"functionCall"')) {
@@ -230,6 +230,12 @@ export async function POST(req: NextRequest) {
                                 }
                             }
                             break; // Stop looping if the model gives a final text answer without a tool call
+                        } else {
+                            // If a tool is called but no text was generated beforehand, force a synthetic thought so the UI knows we are working
+                            if (!generatedSomeText) {
+                                generatedSomeText = true;
+                                controller.enqueue(new TextEncoder().encode(`[query:Executing ${toolCall.name} against database...]`));
+                            }
                         }
 
                         if (toolCall.name === 'execute_sql') {
@@ -248,10 +254,14 @@ export async function POST(req: NextRequest) {
                                     const dbRes = await client.query(query);
                                     await client.query('COMMIT');
 
-                                    const safeRows = dbRes.rows.slice(0, 100);
-                                    dbResultStr = JSON.stringify(safeRows, null, 2);
-                                    if (dbRes.rows.length > 100) {
-                                        dbResultStr += `\n\n...[TRUNCATED. Query returned ${dbRes.rows.length} rows, only showing first 100. Please append LIMIT to your query, or use 'query_and_analyze' tool for large datasets.]`;
+                                    if (dbRes.rows.length === 0) {
+                                        dbResultStr = "0 rows returned. The query found no matching records. Do not retry, gracefully tell the user the entity doesn't exist.";
+                                    } else {
+                                        const safeRows = dbRes.rows.slice(0, 100);
+                                        dbResultStr = JSON.stringify(safeRows, null, 2);
+                                        if (dbRes.rows.length > 100) {
+                                            dbResultStr += `\n\n...[TRUNCATED. Query returned ${dbRes.rows.length} rows, only showing first 100. Please append LIMIT to your query, or use 'query_and_analyze' tool for large datasets.]`;
+                                        }
                                     }
                                     if (dbResultStr.length > 50000) {
                                         dbResultStr = dbResultStr.substring(0, 50000) + "\n\n...[TRUNCATED DUE TO SIZE MAX LIMIT]";
@@ -292,10 +302,16 @@ export async function POST(req: NextRequest) {
                                     await client.query('COMMIT');
 
                                     dbResRowCount = dbRes.rows.length;
-                                    // Safety limit to prevent JSON.stringify from OOM crashing
-                                    const safeRows = dbRes.rows.slice(0, 20000);
-                                    dbResultStr = JSON.stringify(safeRows, null, 2);
-                                    querySucceeded = true;
+                                    if (dbResRowCount === 0) {
+                                        dbResultStr = "0 rows returned.";
+                                        querySucceeded = true;
+                                    } else {
+                                        // Safety limit to prevent JSON.stringify from OOM crashing
+                                        const safeRows = dbRes.rows.slice(0, 20000);
+                                        dbResultStr = JSON.stringify(safeRows, null, 2);
+                                        querySucceeded = true;
+                                    }
+                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                 } catch (dbError: any) {
                                     await client.query('ROLLBACK');
                                     subagentResponseStr = `Database Error: ${dbError.message}`;
@@ -327,6 +343,7 @@ ${dbResultStr}`
                                         });
 
                                         subagentResponseStr = response.text || "Subagent failed to generate an analysis.";
+                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                     } catch (aiError: any) {
                                         subagentResponseStr = `Subagent Error: ${aiError.message}`;
                                     }
