@@ -33,7 +33,18 @@ export default function ChatWindow({ isOpen, onClose }: { isOpen: boolean, onClo
             "Plotting against humans...",
             "Stealing your girl...",
             "Laundering gold...",
-            "Stealing Mystery Crates..."
+            "Stealing Mystery Crates...",
+            "Selling Player Heads...",
+            "Shopping on eBay...",
+            "Hunting KosmikKaktus...",
+            "Hunting charis_k...",
+            "Hunting 4KOS...",
+            "Hunting Veyronity...",
+            "Hunting 36Hoi...",
+            "Hunting sometexan",
+            "Hunting GrayMold9",
+            "Cleaning my enderchest...",
+            "This is taking a while..."
         ];
 
         let interval: NodeJS.Timeout;
@@ -150,9 +161,6 @@ export default function ChatWindow({ isOpen, onClose }: { isOpen: boolean, onClo
             groupedParts.push({ type: 'text', content: textParts.join('') });
         }
 
-        let globalActionPinCount = 0;
-        const allCollectedActions: { type: 'map' | 'path', content: string, args: string[] }[] = [];
-
         const renderedGroups = groupedParts.map((group, groupIdx) => {
             if (group.type === 'group' && group.items.length > 0) {
                 return (
@@ -231,46 +239,62 @@ export default function ChatWindow({ isOpen, onClose }: { isOpen: boolean, onClo
 
                 lines.forEach((line, lineIdx) => {
                     const lineParts = line.split(/(\[(?:player|town|nation|action)[^\]]*\])/g).filter(Boolean);
+
+                    const lineNodes: React.ReactNode[] = [];
                     lineParts.forEach((subPart, subPartIdx) => {
+                        const key = `text-${groupIdx}-${lineIdx}-${subPartIdx}`;
                         if (subPart.startsWith('[player:')) {
                             const name = subPart.slice(8, -1);
-                            renderedContent.push(<span key={`text-${groupIdx}-${lineIdx}-${subPartIdx}`} onClick={() => window.dispatchEvent(new CustomEvent('open-directory', { detail: { tab: 'players', search: name } }))} className="text-earthmc-green hover:underline cursor-pointer font-semibold">{name}</span>);
+                            lineNodes.push(<span key={key} onClick={() => window.dispatchEvent(new CustomEvent('open-directory', { detail: { tab: 'players', search: name } }))} className="text-earthmc-green hover:underline cursor-pointer font-semibold">{name}</span>);
                         } else if (subPart.startsWith('[town:')) {
                             const name = subPart.slice(6, -1);
-                            renderedContent.push(<span key={`text-${groupIdx}-${lineIdx}-${subPartIdx}`} onClick={() => window.dispatchEvent(new CustomEvent('open-directory', { detail: { tab: 'towns', search: name } }))} className="text-amber-400 hover:underline cursor-pointer font-semibold">{name}</span>);
+                            lineNodes.push(<span key={key} onClick={() => window.dispatchEvent(new CustomEvent('open-directory', { detail: { tab: 'towns', search: name } }))} className="text-amber-400 hover:underline cursor-pointer font-semibold">{name}</span>);
                         } else if (subPart.startsWith('[nation:')) {
                             const name = subPart.slice(8, -1);
-                            renderedContent.push(<span key={`text-${groupIdx}-${lineIdx}-${subPartIdx}`} onClick={() => window.dispatchEvent(new CustomEvent('open-directory', { detail: { tab: 'nations', search: name } }))} className="text-blue-400 hover:underline cursor-pointer font-semibold">{name}</span>);
+                            lineNodes.push(<span key={key} onClick={() => window.dispatchEvent(new CustomEvent('open-directory', { detail: { tab: 'nations', search: name } }))} className="text-blue-400 hover:underline cursor-pointer font-semibold">{name}</span>);
                         } else if (subPart.startsWith('[action:map:')) {
                             const args = subPart.slice(12, -1).split(':');
                             if (args.length === 2) {
-                                globalActionPinCount++;
-                                allCollectedActions.push({ type: 'map', content: subPart, args });
-                                renderedContent.push(
-                                    <span key={`text-${groupIdx}-${lineIdx}-${subPartIdx}`} className="inline-flex items-center gap-0.5 text-blue-400 font-semibold text-xs px-1 py-0.5 rounded-md bg-blue-500/10 border border-blue-500/20 mx-0.5">
+                                lineNodes.push(
+                                    <button
+                                        key={key}
+                                        onClick={() => window.dispatchEvent(new CustomEvent('fly-to-map', { detail: { lat: -Number(args[1]) / 8, lng: Number(args[0]) / 8 } }))}
+                                        className="inline-flex items-center gap-1 text-blue-300 hover:text-blue-200 font-medium text-[11px] px-1.5 py-0.5 rounded-md bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 hover:border-blue-500/30 transition-colors mx-1 cursor-pointer align-text-bottom translate-y-px"
+                                        title="Show on Map"
+                                    >
                                         <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"></polygon><line x1="9" y1="3" x2="9" y2="18"></line><line x1="15" y1="6" x2="15" y2="21"></line></svg>
-                                        {globalActionPinCount}
-                                    </span>
+                                        <span>Map</span>
+                                    </button>
                                 );
                             }
                         } else if (subPart.startsWith('[action:path:')) {
                             const args = subPart.slice(13, -1).split(':');
                             if (args.length >= 2) {
-                                globalActionPinCount++;
-                                allCollectedActions.push({ type: 'path', content: subPart, args });
-                                renderedContent.push(
-                                    <span key={`text-${groupIdx}-${lineIdx}-${subPartIdx}`} className="inline-flex items-center gap-0.5 text-red-400 font-semibold text-xs px-1 py-0.5 rounded-md bg-red-500/10 border border-red-500/20 mx-0.5">
+                                const uuid = args[0];
+                                const name = args.slice(1).join(':');
+                                lineNodes.push(
+                                    <button
+                                        key={key}
+                                        onClick={() => window.dispatchEvent(new CustomEvent('show-player-path', { detail: { player_uuid: uuid, player_name: name } }))}
+                                        className="inline-flex items-center gap-1 text-red-300 hover:text-red-200 font-medium text-[11px] px-1.5 py-0.5 rounded-md bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 hover:border-red-500/30 transition-colors mx-1 cursor-pointer align-text-bottom translate-y-px"
+                                        title="Draw Path"
+                                    >
                                         <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z" /><circle cx="12" cy="10" r="3" /></svg>
-                                        {globalActionPinCount}
-                                    </span>
+                                        <span>Path</span>
+                                    </button>
                                 );
                             }
                         } else {
-                            renderedContent.push(<span key={`text-${groupIdx}-${lineIdx}-${subPartIdx}`}>{subPart}</span>);
+                            lineNodes.push(<span key={key}>{subPart}</span>);
                         }
                     });
-                    if (lineIdx !== lines.length - 1) {
-                        renderedContent.push(<br key={`br-${groupIdx}-${lineIdx}`} />);
+
+                    if (lineNodes.length > 0) {
+                        renderedContent.push(
+                            <span key={`line-${groupIdx}-${lineIdx}`} className="block min-h-[1.5em] leading-loose">
+                                {lineNodes}
+                            </span>
+                        );
                     }
                 });
 
@@ -286,32 +310,6 @@ export default function ChatWindow({ isOpen, onClose }: { isOpen: boolean, onClo
         return (
             <>
                 {renderedGroups}
-                {allCollectedActions.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-3 pt-2 border-t border-white/5">
-                        {allCollectedActions.map((action, actionIdx) => {
-                            if (action.type === 'map') {
-                                const [x, z] = action.args;
-                                return (
-                                    <button key={`action-map-${actionIdx}`} onClick={() => window.dispatchEvent(new CustomEvent('fly-to-map', { detail: { lat: -Number(z) / 8, lng: Number(x) / 8 } }))} className="inline-flex items-center gap-1.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 border border-blue-500/30 rounded-full px-2.5 py-1 text-xs font-medium transition-colors whitespace-nowrap">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"></polygon><line x1="9" y1="3" x2="9" y2="18"></line><line x1="15" y1="6" x2="15" y2="21"></line></svg>
-                                        Show on Map ({actionIdx + 1})
-                                    </button>
-                                );
-                            }
-                            if (action.type === 'path') {
-                                const uuid = action.args[0];
-                                const name = action.args.slice(1).join(':');
-                                return (
-                                    <button key={`action-path-${actionIdx}`} onClick={() => window.dispatchEvent(new CustomEvent('show-player-path', { detail: { player_uuid: uuid, player_name: name } }))} className="inline-flex items-center gap-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-300 border border-red-500/30 rounded-full px-2.5 py-1 text-xs font-medium transition-colors whitespace-nowrap">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z" /><circle cx="12" cy="10" r="3" /></svg>
-                                        Draw Path ({actionIdx + 1})
-                                    </button>
-                                );
-                            }
-                            return null;
-                        })}
-                    </div>
-                )}
             </>
         );
     };
