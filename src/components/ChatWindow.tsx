@@ -100,7 +100,7 @@ export default function ChatWindow({ onClose }: { onClose: () => void }) {
 
     const renderMessageContent = (content: string) => {
         return content.split('\n').map((line, lineIdx, linesArray) => {
-            const parts = line.split(/(\[(?:player|town|nation|action)[^\]]*\])/g);
+            const parts = line.split(/(\[(?:player|town|nation|action|thought|query)[^\]]*\])/g);
 
             return (
                 <span key={lineIdx}>
@@ -142,10 +142,10 @@ export default function ChatWindow({ onClose }: { onClose: () => void }) {
                                 );
                             }
                         }
-                        if (part.startsWith('[agent:')) {
+                        if (part.startsWith('[query:')) {
                             const thought = part.slice(7, -1);
                             return (
-                                <details key={partIdx} className="group my-2 bg-black/30 border border-white/5 rounded-xl overflow-hidden cursor-pointer w-full text-xs">
+                                <details key={partIdx} open className="group my-2 bg-black/30 border border-white/5 rounded-xl overflow-hidden cursor-pointer w-full text-xs">
                                     <summary className="px-3 py-2 flex items-center justify-between text-white/50 hover:text-white/80 select-none outline-none font-medium">
                                         <div className="flex items-center gap-2">
                                             <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-earthmc-green/70"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" /></svg>
@@ -154,6 +154,23 @@ export default function ChatWindow({ onClose }: { onClose: () => void }) {
                                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-50 group-open:rotate-180 transition-transform duration-200"><polyline points="6 9 12 15 18 9"></polyline></svg>
                                     </summary>
                                     <div className="px-3 pb-3 pt-1 text-white/60 leading-relaxed border-t border-white/5 bg-black/20 italic">
+                                        {thought}
+                                    </div>
+                                </details>
+                            );
+                        }
+                        if (part.startsWith('[thought:')) {
+                            const thought = part.slice(9, -1);
+                            return (
+                                <details key={partIdx} className="group my-1 bg-transparent overflow-hidden cursor-pointer w-full text-[11px]">
+                                    <summary className="px-1 py-1 flex items-center justify-between text-white/30 hover:text-white/50 select-none outline-none font-medium">
+                                        <div className="flex items-center gap-2">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 16v-4" /><path d="M12 8h.01" /></svg>
+                                            <span className="tracking-wide">Agent Thought</span>
+                                        </div>
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-30 group-open:rotate-180 transition-transform duration-200"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                    </summary>
+                                    <div className="px-2 pb-2 text-white/40 leading-relaxed italic">
                                         {thought}
                                     </div>
                                 </details>
