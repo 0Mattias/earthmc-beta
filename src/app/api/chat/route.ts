@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
         const stream = new ReadableStream({
             async start(controller) {
                 try {
-                    // Initialize the conversation for this specific turn
+                    // Initialize the conversation data
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     const turnMessages: any[] = [{ role: 'user', parts: [{ text: currentMessageText }] }];
                     const maxIter = 10;
@@ -91,9 +91,10 @@ export async function POST(req: NextRequest) {
                         iter++;
                         let responseStream;
                         try {
-                            // Send the entire accumulated chain for this turn
+                            // Send the next message/tool response
                             responseStream = await chat.sendMessageStream({ message: [...turnMessages] });
-                            // Clear turnMessages so we can accumulate the model's new response parts
+
+                            // Clear array for the next iteration (it will either be empty or contain the next tool response)
                             turnMessages.length = 0;
                             // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         } catch (e: any) {
@@ -149,27 +150,13 @@ export async function POST(req: NextRequest) {
                                 }
                             }
 
-                            // The model MUST see its own tool call and the subsequent tool result
+                            // Just feed the tool response directly back to the chat instance; it retains history.
                             turnMessages.push({
-                                role: 'model',
-                                parts: [{
-                                    functionCall: {
-                                        name: 'execute_sql',
-                                        args: args
-                                    }
-                                }]
-                            });
-
-                            turnMessages.push({
-                                role: 'user', // In Gemini, tool results are often passed back as user/function roles 
+                                role: 'user',
                                 parts: [{
                                     functionResponse: {
                                         name: 'execute_sql',
-                                        // The SDK expects an object containing the data, not just a string key
-                                        response: {
-                                            name: 'execute_sql',
-                                            content: dbResultStr
-                                        }
+                                        response: { result: dbResultStr }
                                     }
                                 }]
                             });
