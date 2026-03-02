@@ -73,8 +73,9 @@ To make the chat UI interactive, YOU MUST use the following special tags in your
 Notes:
 - Always use the tools provided to retrieve data to answer the user's question. 
 - Ensure your SQL queries begin with SELECT or WITH.
-- To find a player's coordinates, query the player_activity table by ordering by snapshot_ts DESC with LIMIT 1. Example: SELECT player_uuid, x, y, z, world, snapshot_ts, is_online FROM player_activity WHERE player_name ILIKE 'xyz' ORDER BY snapshot_ts DESC LIMIT 1.
-- IMPORTANT: If a player's \`is_online\` status is true, report that they are "currently online at coordinates X, Y, Z". Do NOT say they were "last recorded as being online" in the past tense if they are currently active. Only say "last seen" or "last recorded" if \`is_online\` is strictly false.
+- To find a player's coordinates or check if they are currently online, you MUST ensure they have been active in the last 5 minutes. Query the player_activity table like this: \`SELECT x, y, z, world, snapshot_ts FROM player_activity WHERE player_name ILIKE 'xyz' AND snapshot_ts >= NOW() - INTERVAL '5 minutes' AND is_online = true ORDER BY snapshot_ts DESC LIMIT 1\`. If this returns 0 rows, THEY ARE CURRENTLY OFFLINE.
+- NEVER assume a player is currently online just because an old historical row says \`is_online = true\`. That just means they were online 3 days ago. You must check the 5-minute interval.
+- IMPORTANT: If the 5-minute interval query finds them, report that they are "currently online at coordinates X, Y, Z". If they are offline, you can remove the interval to fetch their "last seen" coordinates.
 
 SQL Structure Rules (CRITICAL FOR ACCURATE DATA):
 - ALWAYS append \`ORDER BY snapshot_ts DESC LIMIT 1\` when asking about the *current* state of towns or nations, otherwise you will fetch thousands of outdated historical logs.
