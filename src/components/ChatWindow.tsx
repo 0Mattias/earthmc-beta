@@ -126,12 +126,12 @@ export default function ChatWindow({ onClose }: { onClose: () => void }) {
             return (
                 <span key={lineIdx}>
                     {groupedParts.map((group, groupIdx) => {
-                        if (group.type === 'group') {
+                        if (group.type === 'group' && group.items.length > 0) {
                             return (
                                 <details key={groupIdx} className="group my-2 bg-black/20 border border-white/[0.03] rounded-xl overflow-hidden w-full text-xs shadow-sm">
                                     <summary className="px-3 py-2 flex items-center justify-between text-white/50 hover:text-white/70 hover:bg-white/[0.02] select-none outline-none font-medium cursor-pointer transition-colors">
                                         <div className="flex items-center gap-2 text-[11.5px]">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-earthmc-green/60"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" /></svg>
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={`text-earthmc-green/60 ${isThinking && role === 'assistant' ? 'animate-spin' : ''}`} style={{ animationDuration: '3s' }}><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" /></svg>
                                             <span className="tracking-wide">Agent Thinking</span>
                                         </div>
                                         <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-40 group-open:rotate-180 transition-transform duration-200"><polyline points="6 9 12 15 18 9"></polyline></svg>
@@ -168,6 +168,7 @@ export default function ChatWindow({ onClose }: { onClose: () => void }) {
                         }
 
                         // Normal text rendering
+                        if (group.type !== 'text') return null;
                         const part = group.content;
                         if (!part) return null;
 
