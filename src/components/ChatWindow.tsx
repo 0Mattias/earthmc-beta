@@ -208,13 +208,13 @@ export default function ChatWindow({ isOpen, onClose }: { isOpen: boolean, onClo
                     lineParts.forEach((subPart, subPartIdx) => {
                         if (subPart.startsWith('[player:')) {
                             const name = subPart.slice(8, -1);
-                            renderedContent.push(<span key={`text-${groupIdx}-${lineIdx}-${subPartIdx}`} onClick={() => window.dispatchEvent(new CustomEvent('open-directory', { detail: { tab: 'players', search: name } }))} className="text-earthmc-green hover:underline cursor-pointer font-semibold mx-1">{name}</span>);
+                            renderedContent.push(<span key={`text-${groupIdx}-${lineIdx}-${subPartIdx}`} onClick={() => window.dispatchEvent(new CustomEvent('open-directory', { detail: { tab: 'players', search: name } }))} className="text-earthmc-green hover:underline cursor-pointer font-semibold">{name}</span>);
                         } else if (subPart.startsWith('[town:')) {
                             const name = subPart.slice(6, -1);
-                            renderedContent.push(<span key={`text-${groupIdx}-${lineIdx}-${subPartIdx}`} onClick={() => window.dispatchEvent(new CustomEvent('open-directory', { detail: { tab: 'towns', search: name } }))} className="text-amber-400 hover:underline cursor-pointer font-semibold mx-1">{name}</span>);
+                            renderedContent.push(<span key={`text-${groupIdx}-${lineIdx}-${subPartIdx}`} onClick={() => window.dispatchEvent(new CustomEvent('open-directory', { detail: { tab: 'towns', search: name } }))} className="text-amber-400 hover:underline cursor-pointer font-semibold">{name}</span>);
                         } else if (subPart.startsWith('[nation:')) {
                             const name = subPart.slice(8, -1);
-                            renderedContent.push(<span key={`text-${groupIdx}-${lineIdx}-${subPartIdx}`} onClick={() => window.dispatchEvent(new CustomEvent('open-directory', { detail: { tab: 'nations', search: name } }))} className="text-blue-400 hover:underline cursor-pointer font-semibold mx-1">{name}</span>);
+                            renderedContent.push(<span key={`text-${groupIdx}-${lineIdx}-${subPartIdx}`} onClick={() => window.dispatchEvent(new CustomEvent('open-directory', { detail: { tab: 'nations', search: name } }))} className="text-blue-400 hover:underline cursor-pointer font-semibold">{name}</span>);
                         } else if (subPart.startsWith('[action:map:')) {
                             const args = subPart.slice(12, -1).split(':');
                             if (args.length === 2) {
@@ -297,9 +297,8 @@ export default function ChatWindow({ isOpen, onClose }: { isOpen: boolean, onClo
                 <motion.div
                     initial={{ opacity: 0, y: "-40%", x: "-50%" }}
                     animate={{ opacity: 1, y: "-50%", x: "-50%" }}
-                    exit={{ opacity: 0, y: "-40%", x: "-50%" }}
                     transition={{ duration: 0.3, ease: "easeOut" }}
-                    className="fixed top-1/2 left-1/2 w-[400px] md:w-[600px] max-w-[calc(100vw-2rem)] h-[550px] max-h-[calc(100vh-8rem)] liquid-glass flex flex-col rounded-2xl border border-white/10 shadow-2xl z-[1000] pointer-events-auto"
+                    className="fixed top-1/2 left-1/2 w-[400px] md:w-[650px] max-w-[calc(100vw-2rem)] h-[550px] max-h-[calc(100vh-8rem)] liquid-glass flex flex-col rounded-2xl border border-white/10 shadow-2xl z-[1000] pointer-events-auto"
                 >
                     {/* Header */}
                     <div className="flex justify-between items-center p-3 px-4 border-b border-white/5 bg-black/20 rounded-t-2xl">
