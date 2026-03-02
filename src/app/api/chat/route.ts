@@ -40,6 +40,7 @@ Notes:
 - When the tool returns JSON database results, you MUST interpret those results and create a helpful, human-readable response based on them. Do not remain silent when data is returned.
 - If necessary, make multiple sequential tool calls to gather all required information. Handle database errors gracefully by adjusting your query to fix issues like syntax errors.
 - To find a player's last known coordinates (especially if they are offline), query the player_activity table by ordering by snapshot_ts DESC with LIMIT 1. Example: SELECT x, y, z, world, snapshot_ts FROM player_activity WHERE player_name ILIKE 'xyz' ORDER BY snapshot_ts DESC LIMIT 1.
+- You can query up to 10 times in a row. If you hit an error, read it, fix your query, and try again.
 - The UI handles the presentation, so keep your responses concise, helpful, and derived directly from the data.
 - STRICT DOMAIN RESTRICTION: You must only answer questions related to EarthMC, Minecraft, or the data in the database. Refuse to answer general questions, help with code, roleplay, or discuss unrelated topics.
 - STRICT FORMATTING: DO NOT use bolding (**), asterisks (*), or emojis under any circumstances. Format your text plainly.
@@ -78,9 +79,10 @@ export async function POST(req: NextRequest) {
         const stream = new ReadableStream({
             async start(controller) {
                 try {
+                    // Initialize the conversation for this specific turn
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    let nextMessage: any = { message: currentMessageText };
-                    const maxIter = 5;
+                    const turnMessages: any[] = [{ role: 'user', parts: [{ text: currentMessageText }] }];
+                    const maxIter = 10;
                     let iter = 0;
                     let generatedSomeText = false;
                     let lastToolCall = null;
@@ -89,7 +91,10 @@ export async function POST(req: NextRequest) {
                         iter++;
                         let responseStream;
                         try {
-                            responseStream = await chat.sendMessageStream(nextMessage);
+                            // Send the entire accumulated chain for this turn
+                            responseStream = await chat.sendMessageStream({ message: [...turnMessages] });
+                            // Clear turnMessages so we can accumulate the model's new response parts
+                            turnMessages.length = 0;
                             // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         } catch (e: any) {
                             controller.enqueue(new TextEncoder().encode(`\n\n[Chat API Error: ${e.message}]`));
@@ -123,7 +128,7 @@ export async function POST(req: NextRequest) {
                                     controller.enqueue(new TextEncoder().encode("\n\n[The model returned an empty response. Wait a moment and try again.]"));
                                 }
                             }
-                            break;
+                            break; // Stop looping if the model gives a final text answer without a tool call
                         }
 
                         if (toolCall.name === 'execute_sql') {
@@ -131,35 +136,39 @@ export async function POST(req: NextRequest) {
                             const args = toolCall.args as any;
                             const query = args.query ? args.query.trim() : "";
 
-                            if (!query.toUpperCase().startsWith('SELECT') && !query.toUpperCase().startsWith('WITH')) {
-                                nextMessage = {
-                                    message: [{
-                                        functionResponse: {
-                                            name: 'execute_sql',
-                                            response: { result: "Error: Only SELECT queries are allowed." }
-                                        }
-                                    }]
-                                };
-                                continue;
-                            }
-
                             let dbResultStr = "";
-                            try {
-                                const dbRes = await pool.query(query);
-                                dbResultStr = JSON.stringify(dbRes.rows, null, 2);
-                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                            } catch (dbError: any) {
-                                dbResultStr = `Database Error: ${dbError.message}`;
+                            if (!query.toUpperCase().startsWith('SELECT') && !query.toUpperCase().startsWith('WITH')) {
+                                dbResultStr = "Error: Only SELECT queries are allowed.";
+                            } else {
+                                try {
+                                    const dbRes = await pool.query(query);
+                                    dbResultStr = JSON.stringify(dbRes.rows, null, 2);
+                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                } catch (dbError: any) {
+                                    dbResultStr = `Database Error: ${dbError.message}`;
+                                }
                             }
 
-                            nextMessage = {
-                                message: [{
+                            // The model MUST see its own tool call and the subsequent tool result
+                            turnMessages.push({
+                                role: 'model',
+                                parts: [{
+                                    functionCall: {
+                                        name: 'execute_sql',
+                                        args: args
+                                    }
+                                }]
+                            });
+
+                            turnMessages.push({
+                                role: 'user', // In Gemini, tool results are often passed back as user/function roles 
+                                parts: [{
                                     functionResponse: {
                                         name: 'execute_sql',
                                         response: { result: dbResultStr }
                                     }
                                 }]
-                            };
+                            });
                         }
                     }
 
