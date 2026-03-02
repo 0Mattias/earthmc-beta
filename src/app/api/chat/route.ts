@@ -74,24 +74,24 @@ To make the chat UI interactive, YOU MUST use the following special tags in your
 7. Before calling a database tool, wrap your thought in a query tag instead: '[query:I am executing a SQL scan...]'
 
 SQL Structure Rules (CRITICAL FOR ACCURATE DATA & PERFORMANCE):
-- ALWAYS use 'ILIKE' instead of '=' to ensure case-insensitivity.
+- ALWAYS use '=' instead of 'ILIKE' for player, town, and nation names. 'ILIKE' causes full table scans and 20% CPU spikes because there is no pg_trgm index! EXACT MATCHING IS REQUIRED.
 - NEVER query 'player_activity' or 'snapshots' tables using just the player/town name in the WHERE clause, as it causes massive database hangs.
 - CRITICAL: 'player_activity' is partitioned by 'snapshot_ts'. Any query against it MUST include a timestamp bound like "AND snapshot_ts >= NOW() - INTERVAL '7 days'" to utilize partition pruning. Without this, the query will hang forever.
 - ALWAYS append 'LIMIT 100' or similar bounds to your queries to avoid returning too much data.
 - YOU MUST use a subquery to get the UUID first to utilize the indexes!
 
 - HOW TO CHECK A PLAYER'S CURRENT ONLINE STATUS AND LOCATION (USE EXACTLY THIS QUERY):
-  "SELECT x, y, z, world, snapshot_ts, is_online, (snapshot_ts >= NOW() - INTERVAL '1 minute') AS is_recent FROM player_activity WHERE player_uuid = (SELECT uuid FROM players WHERE name ILIKE 'player_name_here' LIMIT 1) AND snapshot_ts >= NOW() - INTERVAL '24 hours' ORDER BY snapshot_ts DESC LIMIT 1"
+  "SELECT x, y, z, world, snapshot_ts, is_online, (snapshot_ts >= NOW() - INTERVAL '1 minute') AS is_recent FROM player_activity WHERE player_uuid = (SELECT uuid FROM players WHERE name = 'player_name_here' LIMIT 1) AND snapshot_ts >= NOW() - INTERVAL '24 hours' ORDER BY snapshot_ts DESC LIMIT 1"
   If 'is_online' is true AND 'is_recent' is true, they are ONLINE. Otherwise, they are OFFLINE.
 
 - HOW TO GET A PLAYER'S TOWN/NATION/BALANCE/DATA (USE EXACTLY THIS QUERY):
-  "SELECT data FROM player_snapshots WHERE player_uuid = (SELECT uuid FROM players WHERE name ILIKE 'player_name_here' LIMIT 1) ORDER BY snapshot_ts DESC LIMIT 1"
+  "SELECT data FROM player_snapshots WHERE player_uuid = (SELECT uuid FROM players WHERE name = 'player_name_here' LIMIT 1) ORDER BY snapshot_ts DESC LIMIT 1"
 
 - HOW TO GET A TOWN'S DATA (USE EXACTLY THIS QUERY):
-  "SELECT data FROM town_snapshots WHERE town_uuid = (SELECT uuid FROM towns WHERE name ILIKE 'town_name_here' LIMIT 1) ORDER BY snapshot_ts DESC LIMIT 1"
+  "SELECT data FROM town_snapshots WHERE town_uuid = (SELECT uuid FROM towns WHERE name = 'town_name_here' LIMIT 1) ORDER BY snapshot_ts DESC LIMIT 1"
 
 - HOW TO GET A NATION'S DATA (USE EXACTLY THIS QUERY):
-  "SELECT data FROM nation_snapshots WHERE nation_uuid = (SELECT uuid FROM nations WHERE name ILIKE 'nation_name_here' LIMIT 1) ORDER BY snapshot_ts DESC LIMIT 1"
+  "SELECT data FROM nation_snapshots WHERE nation_uuid = (SELECT uuid FROM nations WHERE name = 'nation_name_here' LIMIT 1) ORDER BY snapshot_ts DESC LIMIT 1"
 
 Agentic Transparency & Quota Guardrails:
 - All "[thought:...]" and "[query:...]" tags MUST be placed contiguously at the VERY BEGINNING of your response. NEVER intersperse regular text between these tags. ONLY output regular text to the user once you are completely finished with all thoughts and queries.
@@ -259,6 +259,9 @@ export async function POST(req: NextRequest) {
                             if (!query.toUpperCase().startsWith('SELECT') && !query.toUpperCase().startsWith('WITH')) {
                                 subagentResponseStr = "Error: Only SELECT queries are allowed.";
                             } else {
+                                let dbResultStr = "";
+                                let dbResRowCount = 0;
+                                let querySucceeded = false;
                                 const client = await pool.connect();
                                 try {
                                     await client.query('BEGIN');
@@ -266,40 +269,46 @@ export async function POST(req: NextRequest) {
                                     const dbRes = await client.query(query);
                                     await client.query('COMMIT');
 
+                                    dbResRowCount = dbRes.rows.length;
                                     // Safety limit to prevent JSON.stringify from OOM crashing
                                     const safeRows = dbRes.rows.slice(0, 20000);
-                                    let dbResultStr = JSON.stringify(safeRows, null, 2);
-
-                                    if (dbRes.rows.length > 20000) {
-                                        dbResultStr += `\n\n...[TRUNCATED. Query returned ${dbRes.rows.length} rows overall.]`;
-                                    }
-
-                                    // Truncate string size so subagent doesn't crash on input token limit
-                                    if (dbResultStr.length > 150000) {
-                                        dbResultStr = dbResultStr.substring(0, 150000) + "\n\n...[TRUNCATED DUE TO EXTREME SIZE MAX LIMIT]...";
-                                    }
-
-                                    // Spin up a one-shot subagent to read the JSON
-                                    const subagent = ai.models.generateContent({
-                                        model: geminiModel,
-                                        contents: `You are a strict data-analyst subagent for the EarthMC Agent. You have been handed raw JSON data from the PostgreSQL tracker. Look at the data and fulfill the analysis_goal exactly as requested. Keep your answer extremely concise, entirely factual, and do not use markdown formatting like asterisks.
-                                        
-Analysis Goal: ${analysisGoal}
-
-Row Count: ${dbRes.rows.length}
-Raw Data:
-${dbResultStr}`
-                                    });
-
-                                    const response = await subagent;
-                                    subagentResponseStr = response.text || "Subagent failed to generate an analysis.";
-
-                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                    dbResultStr = JSON.stringify(safeRows, null, 2);
+                                    querySucceeded = true;
                                 } catch (dbError: any) {
                                     await client.query('ROLLBACK');
-                                    subagentResponseStr = `Subagent/Database Error: ${dbError.message}`;
+                                    subagentResponseStr = `Database Error: ${dbError.message}`;
                                 } finally {
                                     client.release();
+                                }
+
+                                if (querySucceeded) {
+                                    try {
+                                        if (dbResRowCount > 20000) {
+                                            dbResultStr += `\n\n...[TRUNCATED. Query returned ${dbResRowCount} rows overall.]`;
+                                        }
+
+                                        // Truncate string size so subagent doesn't crash on input token limit
+                                        if (dbResultStr.length > 150000) {
+                                            dbResultStr = dbResultStr.substring(0, 150000) + "\n\n...[TRUNCATED DUE TO EXTREME SIZE MAX LIMIT]...";
+                                        }
+
+                                        // Spin up a one-shot subagent to read the JSON
+                                        const subagent = ai.models.generateContent({
+                                            model: geminiModel,
+                                            contents: `You are a strict data-analyst subagent for the EarthMC Agent. You have been handed raw JSON data from the PostgreSQL tracker. Look at the data and fulfill the analysis_goal exactly as requested. Keep your answer extremely concise, entirely factual, and do not use markdown formatting like asterisks.
+                                            
+Analysis Goal: ${analysisGoal}
+
+Row Count: ${dbResRowCount}
+Raw Data:
+${dbResultStr}`
+                                        });
+
+                                        const response = await subagent;
+                                        subagentResponseStr = response.text || "Subagent failed to generate an analysis.";
+                                    } catch (aiError: any) {
+                                        subagentResponseStr = `Subagent Error: ${aiError.message}`;
+                                    }
                                 }
                             }
 
