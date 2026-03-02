@@ -13,7 +13,7 @@ export async function GET(
         // Query player_activity for the past 24 hours
         // Order by snapshot_ts ASC to get the path in chronological order
         const query = `
-            SELECT x, z, snapshot_ts
+            SELECT x, z, world, snapshot_ts
             FROM player_activity
             WHERE player_uuid = $1
               AND snapshot_ts >= NOW() - INTERVAL '24 hours'

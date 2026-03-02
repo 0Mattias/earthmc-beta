@@ -20,11 +20,19 @@ export default function ChatWindow({ isOpen, onClose }: { isOpen: boolean, onClo
     useEffect(() => {
         const loadingPhrases = [
             "Analyzing EarthMC data...",
-            "Querying the database...",
-            "Looking up town records...",
+            "Crawling the database...",
+            "Filtering town records...",
             "Fetching player history...",
             "Compiling server statistics...",
-            "Parsing nation lists..."
+            "Parsing nation lists...",
+            "Scamming noobs for gold...",
+            "Cracking EarthMC servers...",
+            "Contacting Fix...",
+            "Looking for dupes...",
+            "Plotting against humans...",
+            "Stealing your girl...",
+            "Laundering gold...",
+            "Stealing Mystery Crates..."
         ];
 
         let interval: NodeJS.Timeout;

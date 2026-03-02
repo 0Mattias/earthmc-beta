@@ -126,7 +126,7 @@ function MapController({ coordsRef }: { coordsRef: React.RefObject<HTMLSpanEleme
 export default function EarthMap({ activeTab }: { activeTab?: string }) {
     const [playersMap, setPlayersMap] = useState<Map<string, PlayerData>>(new Map());
     const [totalOnline, setTotalOnline] = useState<number>(0);
-    const [pathData, setPathData] = useState<{ lat: number, lng: number }[]>([]);
+    const [pathData, setPathData] = useState<{ lat: number, lng: number }[][]>([]);
     const [pathPlayer, setPathPlayer] = useState<{ uuid: string, name: string } | null>(null);
     const [showPlayers, setShowPlayers] = useState<boolean>(true);
     const [showTowns, setShowTowns] = useState<boolean>(false);
@@ -188,9 +188,27 @@ export default function EarthMap({ activeTab }: { activeTab?: string }) {
                                         const scale = 1 / Math.pow(2, 3);
                                         const newLat = -p.z * scale;
                                         const newLng = p.x * scale;
-                                        const lastPoint = currentPathData[currentPathData.length - 1];
+
+                                        const lastSegmentIdx = currentPathData.length - 1;
+                                        const lastSegment = currentPathData[lastSegmentIdx];
+                                        if (!lastSegment || lastSegment.length === 0) return currentPathData;
+
+                                        const lastPoint = lastSegment[lastSegment.length - 1];
+
+                                        const dx = (newLng - lastPoint.lng) / scale;
+                                        const dz = (-newLat - (-lastPoint.lat)) / scale;
+                                        const dist = Math.sqrt(dx * dx + dz * dz);
+
+                                        const isTeleport = dist > 500;
+
                                         if (Math.abs(lastPoint.lat - newLat) > 0.0001 || Math.abs(lastPoint.lng - newLng) > 0.0001) {
-                                            return [...currentPathData, { lat: newLat, lng: newLng }];
+                                            const newPathData = [...currentPathData];
+                                            if (isTeleport) {
+                                                newPathData.push([{ lat: newLat, lng: newLng }]);
+                                            } else {
+                                                newPathData[lastSegmentIdx] = [...lastSegment, { lat: newLat, lng: newLng }];
+                                            }
+                                            return newPathData;
                                         }
                                         return currentPathData;
                                     });
@@ -246,15 +264,44 @@ export default function EarthMap({ activeTab }: { activeTab?: string }) {
                     const data = await res.json();
                     if (data.path) {
                         const scale = 1 / Math.pow(2, 3);
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        const formattedPath = data.path.map((point: any) => ({
-                            lat: -point.z * scale,
-                            lng: point.x * scale
-                        }));
-                        setPathData(formattedPath);
+                        const multiPath: { lat: number, lng: number }[][] = [];
+                        let currentSegment: { lat: number, lng: number }[] = [];
 
-                        if (formattedPath.length > 0) {
-                            const lastPoint = formattedPath[formattedPath.length - 1];
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        let prevPoint: any = null;
+
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        for (const point of data.path) {
+                            if (prevPoint) {
+                                const dx = point.x - prevPoint.x;
+                                const dz = point.z - prevPoint.z;
+                                const dist = Math.sqrt(dx * dx + dz * dz);
+
+                                const isTeleport = dist > 500 || (point.world && prevPoint.world && point.world !== prevPoint.world);
+
+                                if (isTeleport) {
+                                    if (currentSegment.length > 0) {
+                                        multiPath.push(currentSegment);
+                                    }
+                                    currentSegment = [];
+                                }
+                            }
+                            currentSegment.push({
+                                lat: -point.z * scale,
+                                lng: point.x * scale
+                            });
+                            prevPoint = point;
+                        }
+
+                        if (currentSegment.length > 0) {
+                            multiPath.push(currentSegment);
+                        }
+
+                        setPathData(multiPath);
+
+                        if (multiPath.length > 0) {
+                            const lastSegment = multiPath[multiPath.length - 1];
+                            const lastPoint = lastSegment[lastSegment.length - 1];
                             window.dispatchEvent(new CustomEvent('fly-to-map', {
                                 detail: { lat: lastPoint.lat, lng: lastPoint.lng }
                             }));
@@ -435,13 +482,15 @@ export default function EarthMap({ activeTab }: { activeTab?: string }) {
 
                 {pathData.length > 0 && (
                     <Polyline
-                        positions={pathData.map(p => [p.lat, p.lng])}
+                        positions={pathData}
                         color="#ef4444"
                         weight={4}
                         opacity={0.8}
                         dashArray="10, 10"
                         lineCap="round"
                         lineJoin="round"
+                        smoothFactor={1}
+                        noClip={true}
                     />
                 )}
             </MapContainer>
