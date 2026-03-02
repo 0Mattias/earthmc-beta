@@ -98,31 +98,100 @@ export default function ChatWindow({ onClose }: { onClose: () => void }) {
         }
     };
 
-    const renderMessageContent = (content: string) => {
-        return content.split('\n').map((line, lineIdx, linesArray) => {
-            const parts = line.split(/(\[(?:player|town|nation|action|thought|query)[^\]]*\])/g);
+    const renderMessageContent = (content: string, role: 'user' | 'assistant') => {
+        const lines = content.split('\n');
+        return lines.map((line, lineIdx) => {
+            const parts = line.split(/(\[(?:player|town|nation|action|thought|query)[^\]]*\])/g).filter(Boolean);
+
+            // Group consecutive thoughts and queries
+            type Group = { type: 'group'; items: string[] };
+            type TextItem = { type: 'text'; content: string };
+            const groupedParts: (Group | TextItem)[] = [];
+            let currentGroup: string[] | null = null;
+
+            for (let i = 0; i < parts.length; i++) {
+                const part = parts[i];
+                if (part.startsWith('[query:') || part.startsWith('[thought:')) {
+                    if (!currentGroup) {
+                        currentGroup = [];
+                        groupedParts.push({ type: 'group', items: currentGroup });
+                    }
+                    currentGroup.push(part);
+                } else {
+                    currentGroup = null;
+                    groupedParts.push({ type: 'text', content: part });
+                }
+            }
 
             return (
                 <span key={lineIdx}>
-                    {parts.map((part, partIdx) => {
+                    {groupedParts.map((group, groupIdx) => {
+                        if (group.type === 'group') {
+                            return (
+                                <details key={groupIdx} open className="group my-1.5 bg-black/40 border border-white/5 rounded-lg overflow-hidden w-full text-[11px] shadow-sm">
+                                    <summary className="px-2.5 py-1.5 flex items-center justify-between text-white/40 hover:text-white/70 select-none outline-none font-medium cursor-pointer transition-colors">
+                                        <div className="flex items-center gap-1.5">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-earthmc-green/60"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" /></svg>
+                                            <span className="tracking-wide">Agent Thinking</span>
+                                        </div>
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-40 group-open:rotate-180 transition-transform duration-200"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                    </summary>
+                                    <div className="px-2.5 pb-2.5 pt-1 text-white/50 leading-relaxed border-t border-white/5 bg-black/20 italic flex flex-col gap-1.5 cursor-default">
+                                        {group.items.map((item, itemIdx) => {
+                                            if (item.startsWith('[query:')) {
+                                                return (
+                                                    <div key={itemIdx} className="bg-blue-500/5 border border-blue-500/10 rounded-md p-2">
+                                                        <div className="flex items-center gap-1.5 mb-1 text-blue-400/80 font-semibold not-italic">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>
+                                                            <span>Querying Database</span>
+                                                        </div>
+                                                        <div className="text-white/60 ml-0.5">{item.slice(7, -1)}</div>
+                                                    </div>
+                                                );
+                                            }
+                                            if (item.startsWith('[thought:')) {
+                                                return (
+                                                    <div key={itemIdx} className="bg-white/5 rounded-md p-1.5 px-2">
+                                                        <div className="flex items-center gap-1.5 mb-1 text-white/30 font-semibold not-italic">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
+                                                            <span>Agent Thought</span>
+                                                        </div>
+                                                        <div className="text-white/40 ml-0.5">{item.slice(9, -1)}</div>
+                                                    </div>
+                                                );
+                                            }
+                                            return null;
+                                        })}
+                                    </div>
+                                </details>
+                            );
+                        }
+
+                        // Normal text rendering
+                        const part = group.content;
+                        if (!part) return null;
+
+                        // Hide the actual response text if the agent is still thinking (and we are the assistant)
+                        if (role === 'assistant' && isThinking) return null;
+
                         if (part.startsWith('[player:')) {
                             const name = part.slice(8, -1);
-                            return <span key={partIdx} onClick={() => window.dispatchEvent(new CustomEvent('open-directory', { detail: { tab: 'players', search: name } }))} className="text-earthmc-green hover:underline cursor-pointer font-semibold">{name}</span>;
+                            return <span key={groupIdx} onClick={() => window.dispatchEvent(new CustomEvent('open-directory', { detail: { tab: 'players', search: name } }))} className="text-earthmc-green hover:underline cursor-pointer font-semibold">{name}</span>;
                         }
                         if (part.startsWith('[town:')) {
                             const name = part.slice(6, -1);
-                            return <span key={partIdx} onClick={() => window.dispatchEvent(new CustomEvent('open-directory', { detail: { tab: 'towns', search: name } }))} className="text-amber-400 hover:underline cursor-pointer font-semibold">{name}</span>;
+                            return <span key={groupIdx} onClick={() => window.dispatchEvent(new CustomEvent('open-directory', { detail: { tab: 'towns', search: name } }))} className="text-amber-400 hover:underline cursor-pointer font-semibold">{name}</span>;
                         }
                         if (part.startsWith('[nation:')) {
                             const name = part.slice(8, -1);
-                            return <span key={partIdx} onClick={() => window.dispatchEvent(new CustomEvent('open-directory', { detail: { tab: 'nations', search: name } }))} className="text-blue-400 hover:underline cursor-pointer font-semibold">{name}</span>;
+                            return <span key={groupIdx} onClick={() => window.dispatchEvent(new CustomEvent('open-directory', { detail: { tab: 'nations', search: name } }))} className="text-blue-400 hover:underline cursor-pointer font-semibold">{name}</span>;
                         }
                         if (part.startsWith('[action:map:')) {
                             const coords = part.slice(12, -1).split(':');
                             if (coords.length === 2) {
                                 const [x, z] = coords;
                                 return (
-                                    <button key={partIdx} onClick={() => window.dispatchEvent(new CustomEvent('fly-to-map', { detail: { lat: -Number(z) / 8, lng: Number(x) / 8 } }))} className="inline-flex items-center gap-1.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 border border-blue-500/30 rounded-full px-2.5 py-1 text-xs font-medium transition-colors mt-2 mb-1 mr-2 whitespace-nowrap">
+                                    <button key={groupIdx} onClick={() => window.dispatchEvent(new CustomEvent('fly-to-map', { detail: { lat: -Number(z) / 8, lng: Number(x) / 8 } }))} className="inline-flex items-center gap-1.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 border border-blue-500/30 rounded-full px-2.5 py-1 text-xs font-medium transition-colors mt-2 mb-1 mr-2 whitespace-nowrap">
                                         <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"></polygon><line x1="9" y1="3" x2="9" y2="18"></line><line x1="15" y1="6" x2="15" y2="21"></line></svg>
                                         Show on Map
                                     </button>
@@ -135,50 +204,16 @@ export default function ChatWindow({ onClose }: { onClose: () => void }) {
                                 const uuid = args[0];
                                 const name = args.slice(1).join(':');
                                 return (
-                                    <button key={partIdx} onClick={() => window.dispatchEvent(new CustomEvent('show-player-path', { detail: { player_uuid: uuid, player_name: name } }))} className="inline-flex items-center gap-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-300 border border-red-500/30 rounded-full px-2.5 py-1 text-xs font-medium transition-colors mt-2 mb-1 mr-2 whitespace-nowrap">
+                                    <button key={groupIdx} onClick={() => window.dispatchEvent(new CustomEvent('show-player-path', { detail: { player_uuid: uuid, player_name: name } }))} className="inline-flex items-center gap-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-300 border border-red-500/30 rounded-full px-2.5 py-1 text-xs font-medium transition-colors mt-2 mb-1 mr-2 whitespace-nowrap">
                                         <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z" /><circle cx="12" cy="10" r="3" /></svg>
                                         Draw Path
                                     </button>
                                 );
                             }
                         }
-                        if (part.startsWith('[query:')) {
-                            const thought = part.slice(7, -1);
-                            return (
-                                <details key={partIdx} open className="group my-2 bg-black/30 border border-white/5 rounded-xl overflow-hidden cursor-pointer w-full text-xs">
-                                    <summary className="px-3 py-2 flex items-center justify-between text-white/50 hover:text-white/80 select-none outline-none font-medium">
-                                        <div className="flex items-center gap-2">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-earthmc-green/70"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" /></svg>
-                                            <span className="tracking-wide">Querying Database</span>
-                                        </div>
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-50 group-open:rotate-180 transition-transform duration-200"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                                    </summary>
-                                    <div className="px-3 pb-3 pt-1 text-white/60 leading-relaxed border-t border-white/5 bg-black/20 italic">
-                                        {thought}
-                                    </div>
-                                </details>
-                            );
-                        }
-                        if (part.startsWith('[thought:')) {
-                            const thought = part.slice(9, -1);
-                            return (
-                                <details key={partIdx} className="group my-1 bg-transparent overflow-hidden cursor-pointer w-full text-[11px]">
-                                    <summary className="px-1 py-1 flex items-center justify-between text-white/30 hover:text-white/50 select-none outline-none font-medium">
-                                        <div className="flex items-center gap-2">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 16v-4" /><path d="M12 8h.01" /></svg>
-                                            <span className="tracking-wide">Agent Thought</span>
-                                        </div>
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-30 group-open:rotate-180 transition-transform duration-200"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                                    </summary>
-                                    <div className="px-2 pb-2 text-white/40 leading-relaxed italic">
-                                        {thought}
-                                    </div>
-                                </details>
-                            );
-                        }
-                        return <span key={partIdx}>{part}</span>;
+                        return <span key={groupIdx}>{part}</span>;
                     })}
-                    {lineIdx !== linesArray.length - 1 && <br />}
+                    {lineIdx !== lines.length - 1 && <br />}
                 </span>
             );
         });
@@ -238,7 +273,7 @@ export default function ChatWindow({ onClose }: { onClose: () => void }) {
                                 }`}
                         >
                             {/* Tag parsed text rendering. */}
-                            {renderMessageContent(msg.content)}
+                            {renderMessageContent(msg.content, msg.role)}
                             {msg.role === 'assistant' && msg.content === '' && isThinking && (
                                 <div className="flex items-center gap-3 h-6 text-earthmc-green font-medium">
                                     <motion.div
