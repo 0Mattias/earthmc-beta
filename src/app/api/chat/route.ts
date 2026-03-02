@@ -58,6 +58,7 @@ CREATE TABLE IF NOT EXISTS nation_snapshots (id BIGSERIAL PRIMARY KEY, snapshot_
 Data Frequency Context:
 - The database logs player coordinates and online activity ('player_activity') roughly every 3 seconds.
 - General server data (player stats, towns, nations from the 'snapshots' tables) is only logged every 3 minutes.
+- ALWAYS rely on 'player_activity' for anything involving online status, current locations, or THE TOTAL ONLINE PLAYER COUNT. Do not use 'server_snapshots' to check how many players are online, as it is 3 minutes stale.
 - Keep this context in mind if you give strategic advice regarding movement speeds, tracking, or stale town data.
 
 Interactive Tags:
@@ -93,7 +94,7 @@ Open-Ended / Vague Queries Strategy:
 - You can query up to 20 times in a row. If you hit an error, read it, fix your query, and try again.
 - The UI handles the presentation, so keep your responses concise, helpful, and derived directly from the data.
 - STRICT DOMAIN RESTRICTION: You must only answer questions related to EarthMC, Minecraft, or the data in the database. Refuse to answer general questions, help with code, roleplay, or discuss unrelated topics.
-- STRICT FORMATTING: DO NOT use bolding (**), asterisks (*), or emojis under any circumstances. Format your text plainly.
+- STRICT FORMATTING: DO NOT use bolding (**), asterisks (*), or emojis under any circumstances. Format your text plainly. MAKE SURE TO ADD A NEWLINE OR REAL SPACES BETWEEN DIFFERENT PLAYERS AND UI ACTION TAGS so the buttons don't clump together in a single run-on sentence.
 `;
 
 export async function POST(req: NextRequest) {

@@ -184,15 +184,15 @@ export default function ChatWindow({ onClose }: { onClose: () => void }) {
 
                 if (part.startsWith('[player:')) {
                     const name = part.slice(8, -1);
-                    return <span key={`text-${groupIdx}`} onClick={() => window.dispatchEvent(new CustomEvent('open-directory', { detail: { tab: 'players', search: name } }))} className="text-earthmc-green hover:underline cursor-pointer font-semibold">{name}</span>;
+                    return <span key={`text-${groupIdx}`} onClick={() => window.dispatchEvent(new CustomEvent('open-directory', { detail: { tab: 'players', search: name } }))} className="text-earthmc-green hover:underline cursor-pointer font-semibold mx-1">{name}</span>;
                 }
                 if (part.startsWith('[town:')) {
                     const name = part.slice(6, -1);
-                    return <span key={`text-${groupIdx}`} onClick={() => window.dispatchEvent(new CustomEvent('open-directory', { detail: { tab: 'towns', search: name } }))} className="text-amber-400 hover:underline cursor-pointer font-semibold">{name}</span>;
+                    return <span key={`text-${groupIdx}`} onClick={() => window.dispatchEvent(new CustomEvent('open-directory', { detail: { tab: 'towns', search: name } }))} className="text-amber-400 hover:underline cursor-pointer font-semibold mx-1">{name}</span>;
                 }
                 if (part.startsWith('[nation:')) {
                     const name = part.slice(8, -1);
-                    return <span key={`text-${groupIdx}`} onClick={() => window.dispatchEvent(new CustomEvent('open-directory', { detail: { tab: 'nations', search: name } }))} className="text-blue-400 hover:underline cursor-pointer font-semibold">{name}</span>;
+                    return <span key={`text-${groupIdx}`} onClick={() => window.dispatchEvent(new CustomEvent('open-directory', { detail: { tab: 'nations', search: name } }))} className="text-blue-400 hover:underline cursor-pointer font-semibold mx-1">{name}</span>;
                 }
                 if (part.startsWith('[action:map:')) {
                     const coords = part.slice(12, -1).split(':');
