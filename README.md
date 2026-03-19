@@ -1,6 +1,10 @@
 # EarthMC Tracker Beta - an agentic tracker for the EarthMC
 
-This is a BETA BUILD of EarthMC Tracker ([Looking for the stable version?](https://github.com/0Mattias/earthmc-tracker)), featuring the all-new agent system linked to a real-time server database. Powered by Gemini 3.1 Pro and 3.1 Flash Lite. Ask the agent anything about EarthMC, and get expert insights served to you as they happen!
+🚨 This is a BETA BUILD of EarthMC Tracker ([Looking for the stable version?](https://github.com/0Mattias/earthmc-tracker)). 🚨
+
+# What is it?
+
+EarthMC Tracker is a modded version of the EarthMC server map available at map.earthmc.net. Track players, towns, and nations and keep tabs on historical data in real-time. With the exclusive never-before-seen "Show Path" feature, you can find out exactly where players have walked down to the second. Now featuring a built-in Agent, track, analyze, and gain insights on everything in the database, including these historical paths!
 <img width="1696" height="1500" alt="image" src="https://github.com/user-attachments/assets/fbfb9f01-432d-43b6-9a69-37dcdfd07ae4" />
 
 
@@ -10,12 +14,10 @@ This is a BETA BUILD of EarthMC Tracker ([Looking for the stable version?](https
 
 # EarthMC Tracker - a modded map and database for EarthMC
 ### Now memory efficient with near-instant query times, runs around 150 MB of RAM vs. 850 MB!
-### give it a try at https://trollface.ai
 
 ### controls:
 ### -click on player count bar to hide players
 ### -click on coordinate bar to show towns
-### -click on dice to show a random player
 ### -press ESC to close any tab
 
 <img width="803" height="573" alt="Screenshot 2026-03-01 at 3 43 17 AM" src="https://github.com/user-attachments/assets/ff304150-9f91-4a26-bdc9-d06d0eb1aafe" />
